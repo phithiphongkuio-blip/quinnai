@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Ads Manager by Quinn - เข้าสู่ระบบ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center relative overflow-hidden">
+
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+        <div class="absolute -top-20 -left-20 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+    </div>
+
+    <div id="app" class="relative z-10 w-full max-w-md p-6">
+        
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-bg text-white text-3xl shadow-lg mb-4">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800 tracking-tight">AI Ads Manager by Quinn</h1>
+            <p class="text-gray-500">ระบบจัดการโฆษณาอัจฉริยะ</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            
+            <div class="flex border-b">
+                <button @click="mode = 'login'" :class="mode === 'login' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-700'" class="w-1/2 py-4 font-bold transition-colors">
+                    เข้าสู่ระบบ
+                </button>
+                <button @click="mode = 'register'" :class="mode === 'register' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-700'" class="w-1/2 py-4 font-bold transition-colors">
+                    สมัครสมาชิก
+                </button>
+            </div>
+
+            <div class="p-8">
+                
+                <form v-if="mode === 'login'" @submit.prevent="login">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                            <div class="relative">
+                                <i class="fa-regular fa-envelope absolute left-3 top-3.5 text-gray-400"></i>
+                                <input v-model="form.email" type="email" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="name@company.com">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-lock absolute left-3 top-3.5 text-gray-400"></i>
+                                <input v-model="form.password" type="password" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" :disabled="loading" class="w-full mt-6 gradient-bg text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-xl transition transform active:scale-95 flex justify-center items-center">
+                        <i v-if="loading" class="fa-solid fa-circle-notch fa-spin mr-2"></i>
+                        {{ loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ' }}
+                    </button>
+                </form>
+
+                <form v-else @submit.prevent="register">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อของคุณ</label>
+                            <div class="relative">
+                                <i class="fa-regular fa-user absolute left-3 top-3.5 text-gray-400"></i>
+                                <input v-model="form.name" type="text" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="สมชาย ใจดี">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                            <div class="relative">
+                                <i class="fa-regular fa-envelope absolute left-3 top-3.5 text-gray-400"></i>
+                                <input v-model="form.email" type="email" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="name@company.com">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-lock absolute left-3 top-3.5 text-gray-400"></i>
+                                <input v-model="form.password" type="password" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" :disabled="loading" class="w-full mt-6 bg-gray-800 hover:bg-black text-white font-bold py-3 rounded-lg shadow-lg transition transform active:scale-95 flex justify-center items-center">
+                        <i v-if="loading" class="fa-solid fa-circle-notch fa-spin mr-2"></i>
+                        {{ loading ? 'กำลังสมัคร...' : 'สมัครสมาชิก' }}
+                    </button>
+                </form>
+
+            </div>
+        </div>
+        
+        <p class="text-center text-gray-400 text-xs mt-6">© 2025 AI Ads Manager by Quinn. All rights reserved.</p>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                const mode = ref('login'); // 'login' or 'register'
+                const loading = ref(false);
+                const form = ref({ name: '', email: '', password: '' });
+
+                const login = async () => {
+                    loading.value = true;
+                    try {
+                        const res = await axios.post('http://localhost:3000/api/login', {
+                            email: form.value.email,
+                            password: form.value.password
+                        });
+                        
+                        // ✅ Login สำเร็จ: เก็บ Token ไว้ในเครื่อง
+                        localStorage.setItem('quinn_token', res.data.token);
+                        localStorage.setItem('quinn_user', JSON.stringify(res.data.user));
+                        
+                        alert('🎉 ยินดีต้อนรับ ' + res.data.user.name);
+                        // 👉 ไปหน้า Dashboard (ที่เราจะสร้างในขั้นตอนต่อไป)
+                        window.location.href = 'dashboard.html';
+
+                    } catch (e) {
+                        alert('❌ ' + (e.response?.data?.message || 'Login ไม่ผ่าน'));
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const register = async () => {
+                    loading.value = true;
+                    try {
+                        const res = await axios.post('http://localhost:3000/api/register', form.value);
+                        alert('✅ ' + res.data.message + ' กรุณา Login ได้เลยครับ');
+                        mode.value = 'login'; // สลับไปหน้า Login
+                        form.value.password = ''; // ล้างรหัสผ่าน
+                    } catch (e) {
+                        alert('❌ ' + (e.response?.data?.message || 'สมัครไม่ผ่าน'));
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                return { mode, form, loading, login, register };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
