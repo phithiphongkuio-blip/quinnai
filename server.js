@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -16,7 +17,7 @@ const fs = require('fs');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -212,4 +213,8 @@ async function checkAdsForUser(user) { }
 cron.schedule('*/15 * * * *', async () => { const activeUsers = await User.find({ 'settings.isBotActive': true }); for (const user of activeUsers) await checkAdsForUser(user); });
 
 const PORT = process.env.PORT || 3000;
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.listen(PORT, () => console.log(`🌐 Server Running Port ${PORT}`));
