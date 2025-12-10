@@ -216,9 +216,17 @@ app.post('/api/ai/generate-copy', authMiddleware, async (req, res) => {
 
 app.get('/api/tools/search-interests', authMiddleware, async (req, res) => { try { const fbRes = await axios.get(`https://graph.facebook.com/v18.0/search`, { params: { type: 'adinterest', q: req.query.q, access_token: req.user.settings.fbToken, limit: 20, locale: 'th_TH' } }); res.json({ status: 'Success', data: fbRes.data.data.map(i => ({ id: i.id, name: i.name, audience_size: i.audience_size_upper_bound, topic: i.topic })) }); } catch (e) { res.status(500).json({ message: 'FB Error' }); } });
 
-// Catch-all Route for Static Files
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// ✅ อันใหม่ (ใช้ตัวนี้แทน)
+app.use((req, res) => {
+    const indexPath = path.join(__dirname, 'public', 'index.html');
+    
+    // เพิ่ม Log เพื่อเช็คว่าไฟล์มีอยู่จริงไหม (ช่วย Debug)
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        console.error("❌ File not found:", indexPath);
+        res.status(404).send("Error: index.html not found. Please check 'public' folder.");
+    }
 });
 
 async function checkAdsForUser(user) { }
