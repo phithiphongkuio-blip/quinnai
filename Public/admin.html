@@ -9,45 +9,190 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style> body { font-family: 'Prompt', sans-serif; } ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #1f2937; } ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; } </style>
+    <style> 
+        body { font-family: 'Prompt', sans-serif; } 
+        ::-webkit-scrollbar { width: 6px; } 
+        ::-webkit-scrollbar-track { background: #1f2937; } 
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; } 
+        .animate-scale-up { animation: scaleUp 0.2s ease-out; }
+        @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
 </head>
 <body class="bg-gray-900 min-h-screen text-gray-200">
     <div id="app" class="max-w-7xl mx-auto py-8 px-4">
-        <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-6"><div class="flex items-center gap-3"><div class="bg-indigo-600 p-3 rounded-lg"><i class="fa-solid fa-crown text-2xl text-white"></i></div><div><h1 class="text-2xl font-bold text-white">Super Admin</h1><p class="text-sm text-gray-400">Control Center</p></div></div><div class="flex gap-4"><a href="dashboard.html" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Dashboard</a><button @click="logout" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-red-900/20"><i class="fa-solid fa-power-off mr-2"></i> Logout</button></div></header>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"><div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">Users</p><h3 class="text-3xl font-bold text-white">{{ users.length }}</h3></div><div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">Bots</p><h3 class="text-3xl font-bold text-green-400">{{ activeBots }}</h3></div><div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">Status</p><h3 class="text-3xl font-bold" :class="config.maintenanceMode ? 'text-red-500' : 'text-blue-400'">{{ config.maintenanceMode ? 'Maintenance' : 'Online' }}</h3></div></div>
-        <div class="flex space-x-1 bg-gray-800 p-1 rounded-xl mb-6 w-fit border border-gray-700"><button @click="currentTab='overview'" :class="currentTab==='overview'?'bg-gray-700 text-white shadow':'text-gray-400 hover:text-white'" class="px-6 py-2 rounded-lg text-sm font-bold">Config</button><button @click="currentTab='users'" :class="currentTab==='users'?'bg-gray-700 text-white shadow':'text-gray-400 hover:text-white'" class="px-6 py-2 rounded-lg text-sm font-bold">Users</button><button @click="currentTab='logs'" :class="currentTab==='logs'?'bg-gray-700 text-white shadow':'text-gray-400 hover:text-white'" class="px-6 py-2 rounded-lg text-sm font-bold">Logs</button></div>
+        
+        <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-6">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-3 rounded-lg"><i class="fa-solid fa-crown text-2xl text-white"></i></div>
+                <div><h1 class="text-2xl font-bold text-white">Super Admin</h1><p class="text-sm text-gray-400">Control Center</p></div>
+            </div>
+            <div class="flex gap-4">
+                <a href="dashboard.html" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+                <button @click="logout" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-red-900/20 transition"><i class="fa-solid fa-power-off mr-2"></i> Logout</button>
+            </div>
+        </header>
 
-        <div v-if="currentTab === 'overview'" class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><h3 class="font-bold text-white mb-4">Maintenance</h3><div class="flex items-center justify-between bg-gray-900/50 p-4 rounded-lg border border-gray-700"><div><p class="text-sm font-bold text-white">ปิดปรับปรุง</p></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" v-model="config.maintenanceMode" @change="saveConfig" class="sr-only peer"><div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-red-600"></div></label></div></div><div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><h3 class="font-bold text-white mb-4">Announcement</h3><div class="space-y-3"><input v-model="announcement.message" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm" placeholder="Message..."><div class="flex gap-2"><select v-model="announcement.type" class="bg-gray-900 border border-gray-600 rounded-lg p-2 text-white text-sm"><option value="info">Info</option><option value="warning">Warn</option><option value="danger">Danger</option></select><button @click="saveAnnouncement" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold ml-auto">Post</button><button @click="clearAnnouncement" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-bold">Clear</button></div></div></div></div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">Total Users</p><h3 class="text-3xl font-bold text-white">{{ users.length }}</h3></div>
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">Active Bots</p><h3 class="text-3xl font-bold text-green-400">{{ activeBots }}</h3></div>
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">Pro Users</p><h3 class="text-3xl font-bold text-yellow-400">{{ users.filter(u => u.plan === 'pro').length }}</h3></div>
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">System Status</p><h3 class="text-3xl font-bold" :class="config.maintenanceMode ? 'text-red-500' : 'text-blue-400'">{{ config.maintenanceMode ? 'Maintenance' : 'Online' }}</h3></div>
+        </div>
 
-        <div v-if="currentTab === 'users'" class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-            <table class="w-full text-sm text-left text-gray-300">
-                <thead class="bg-gray-900/50 text-gray-400 uppercase text-xs"><tr><th class="p-4">User</th><th class="p-4">Access</th><th class="p-4 text-center">Status</th><th class="p-4 text-right">Actions</th></tr></thead>
-                <tbody class="divide-y divide-gray-700">
-                    <tr v-for="u in users" :key="u._id" class="hover:bg-gray-750">
-                        <td class="p-4"><div class="font-bold text-white">{{ u.name }}</div><div class="text-xs text-gray-500">{{ u.email }}</div></td>
-                        <td class="p-4">
-                            <div v-if="u.role !== 'admin'" class="flex flex-wrap gap-3">
-                                <label class="flex items-center space-x-2 text-xs text-gray-300 cursor-pointer bg-gray-900 px-2 py-1 rounded border border-gray-700 hover:border-gray-500"><input type="checkbox" value="facebook" v-model="u.access" @change="updateAccess(u)" class="rounded text-blue-500 bg-gray-800 border-gray-600 focus:ring-offset-0"><span>Facebook</span></label>
-                                <label class="flex items-center space-x-2 text-xs text-gray-300 cursor-pointer bg-gray-900 px-2 py-1 rounded border border-gray-700 hover:border-gray-500"><input type="checkbox" value="tiktok" v-model="u.access" @change="updateAccess(u)" class="rounded text-gray-500 bg-gray-800 border-gray-600 focus:ring-offset-0"><span>TikTok</span></label>
+        <div class="flex space-x-1 bg-gray-800 p-1 rounded-xl mb-6 w-fit border border-gray-700">
+            <button @click="currentTab='users'" :class="currentTab==='users'?'bg-gray-700 text-white shadow':'text-gray-400 hover:text-white'" class="px-6 py-2 rounded-lg text-sm font-bold transition">Users & Plans</button>
+            <button @click="currentTab='overview'" :class="currentTab==='overview'?'bg-gray-700 text-white shadow':'text-gray-400 hover:text-white'" class="px-6 py-2 rounded-lg text-sm font-bold transition">System Config</button>
+            <button @click="currentTab='logs'" :class="currentTab==='logs'?'bg-gray-700 text-white shadow':'text-gray-400 hover:text-white'" class="px-6 py-2 rounded-lg text-sm font-bold transition">Logs</button>
+        </div>
+
+        <div v-if="currentTab === 'users'" class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-300 whitespace-nowrap">
+                    <thead class="bg-gray-900/50 text-gray-400 uppercase text-xs">
+                        <tr>
+                            <th class="p-4">User Info</th>
+                            <th class="p-4">Current Plan</th>
+                            <th class="p-4">Expiry Date</th>
+                            <th class="p-4">Access Rights</th>
+                            <th class="p-4 text-center">Status</th>
+                            <th class="p-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700">
+                        <tr v-for="u in users" :key="u._id" class="hover:bg-gray-750 transition">
+                            <td class="p-4">
+                                <div class="font-bold text-white flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold border border-indigo-500/30">{{ u.name[0] }}</div>
+                                    {{ u.name }}
                                 </div>
-                            <span v-else class="text-indigo-400 font-bold text-xs bg-indigo-900/30 px-2 py-1 rounded">ALL ACCESS</span>
-                        </td>
-                        <td class="p-4 text-center"><span v-if="u.isActive" class="text-green-400 text-xs">Active</span><span v-else class="text-red-500 text-xs">Banned</span></td>
-                        <td class="p-4 text-right"><div class="flex justify-end gap-2" v-if="u.role !== 'admin'"><button @click="resetPassword(u._id, u.name)" class="bg-yellow-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">Pass</button><button @click="loginAs(u._id)" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">View</button><button @click="toggleBan(u._id)" class="border px-3 py-1.5 rounded-lg text-xs font-bold">{{ u.isActive ? 'Ban' : 'Unban' }}</button></div></td>
-                    </tr>
-                </tbody>
-            </table>
+                                <div class="text-xs text-gray-500 ml-10">{{ u.email }}</div>
+                            </td>
+                            <td class="p-4">
+                                <span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase border" 
+                                    :class="getPlanBadge(u.plan)">
+                                    {{ u.plan || 'FREE' }}
+                                </span>
+                            </td>
+                            <td class="p-4 text-xs">
+                                <div v-if="u.plan !== 'free' && u.planExpire">
+                                    {{ new Date(u.planExpire).toLocaleDateString('th-TH') }}
+                                    <div class="text-[10px] opacity-60" :class="getDaysLeft(u.planExpire) < 0 ? 'text-red-400' : 'text-green-400'">
+                                        ({{ getDaysLeft(u.planExpire) }} days left)
+                                    </div>
+                                </div>
+                                <div v-else class="text-gray-600">-</div>
+                            </td>
+                            <td class="p-4">
+                                <div v-if="u.role !== 'admin'" class="flex flex-wrap gap-2">
+                                    <label class="cursor-pointer opacity-80 hover:opacity-100 transition"><input type="checkbox" value="facebook" v-model="u.access" @change="updateAccess(u)" class="accent-blue-500 mr-1"><i class="fa-brands fa-facebook text-blue-500"></i></label>
+                                    <label class="cursor-pointer opacity-80 hover:opacity-100 transition"><input type="checkbox" value="tiktok" v-model="u.access" @change="updateAccess(u)" class="accent-black mr-1 bg-gray-600"><i class="fa-brands fa-tiktok text-white"></i></label>
+                                </div>
+                                <span v-else class="text-indigo-400 font-bold text-[10px] bg-indigo-900/30 px-2 py-1 rounded border border-indigo-800">SUPER ADMIN</span>
+                            </td>
+                            <td class="p-4 text-center">
+                                <span v-if="u.isActive" class="text-green-400 text-xs font-bold"><i class="fa-solid fa-circle text-[8px] mr-1"></i> Active</span>
+                                <span v-else class="text-red-500 text-xs font-bold"><i class="fa-solid fa-ban mr-1"></i> Banned</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <div class="flex justify-end gap-2" v-if="u.role !== 'admin'">
+                                    <button @click="openPlanModal(u)" class="bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transition transform hover:-translate-y-0.5">
+                                        <i class="fa-solid fa-crown"></i> Plan
+                                    </button>
+                                    <button @click="loginAs(u._id)" class="bg-gray-700 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                    <div class="relative group">
+                                        <button class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold"><i class="fa-solid fa-ellipsis"></i></button>
+                                        <div class="absolute right-0 mt-2 w-32 bg-gray-800 border border-gray-700 rounded-lg shadow-xl hidden group-hover:block z-50">
+                                            <button @click="resetPassword(u._id, u.name)" class="w-full text-left px-4 py-2 text-xs hover:bg-gray-700 text-yellow-400">Reset Pass</button>
+                                            <button @click="toggleBan(u._id)" class="w-full text-left px-4 py-2 text-xs hover:bg-gray-700" :class="u.isActive ? 'text-red-400' : 'text-green-400'">{{ u.isActive ? 'Ban User' : 'Unban User' }}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div v-if="currentTab === 'overview'" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><h3 class="font-bold text-white mb-4">Maintenance</h3><div class="flex items-center justify-between bg-gray-900/50 p-4 rounded-lg border border-gray-700"><div><p class="text-sm font-bold text-white">ปิดปรับปรุงระบบ</p></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" v-model="config.maintenanceMode" @change="saveConfig" class="sr-only peer"><div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-red-600"></div></label></div></div>
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><h3 class="font-bold text-white mb-4">Announcement</h3><div class="space-y-3"><input v-model="announcement.message" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm" placeholder="Message..."><div class="flex gap-2"><select v-model="announcement.type" class="bg-gray-900 border border-gray-600 rounded-lg p-2 text-white text-sm"><option value="info">Info</option><option value="warning">Warn</option><option value="danger">Danger</option></select><button @click="saveAnnouncement" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold ml-auto">Post</button><button @click="clearAnnouncement" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-bold">Clear</button></div></div></div>
         </div>
 
         <div v-if="currentTab === 'logs'" class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden"><table class="w-full text-sm text-left text-gray-300"><thead class="bg-gray-900/50 text-gray-400 uppercase text-xs"><tr><th class="p-4">Time</th><th class="p-4">Action</th><th class="p-4">Details</th><th class="p-4 text-right">By</th></tr></thead><tbody class="divide-y divide-gray-700"><tr v-for="log in systemLogs" :key="log._id"><td class="p-4 text-xs text-gray-500">{{ new Date(log.timestamp).toLocaleString('th-TH') }}</td><td class="p-4 font-bold">{{ log.action }}</td><td class="p-4 text-gray-400 text-xs">{{ log.details }}</td><td class="p-4 text-right text-indigo-300">{{ log.actor }}</td></tr></tbody></table></div>
+
+        <div v-if="activeModal === 'editPlan'" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="activeModal = null">
+            <div class="bg-gray-800 rounded-2xl w-full max-w-md border border-gray-700 shadow-2xl animate-scale-up">
+                <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-crown text-yellow-400 mr-2"></i> Manage Plan</h3>
+                    <button @click="activeModal = null" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1 uppercase">User</label>
+                        <div class="text-white font-bold text-lg">{{ editingUser.name }}</div>
+                        <div class="text-sm text-gray-500">{{ editingUser.email }}</div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Select Plan</label>
+                            <select v-model="planForm.plan" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500 transition">
+                                <option value="free">Free</option>
+                                <option value="basic">Basic</option>
+                                <option value="pro">Pro (Recommended)</option>
+                                <option value="trial">Trial (7 Days)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Duration (Days)</label>
+                            <input type="number" v-model="planForm.days" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm text-center outline-none focus:border-indigo-500 transition" placeholder="30">
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700 text-xs text-gray-400">
+                        <i class="fa-solid fa-info-circle mr-1"></i> Note: This will set the plan to start from <b>NOW</b> for the specified number of days.
+                    </div>
+
+                    <button @click="savePlan" :disabled="loading" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2">
+                        <span v-if="!loading">💾 Save Changes</span>
+                        <span v-else><i class="fa-solid fa-circle-notch fa-spin"></i> Processing...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
+
     <script>
         const { createApp, ref, onMounted, computed } = Vue;
         createApp({
             setup() {
-                const users = ref([]); const systemLogs = ref([]); const config = ref({ maintenanceMode: false }); const announcement = ref({ message: '', type: 'info', isActive: true }); const token = localStorage.getItem('quinn_token'); const currentTab = ref('overview');
+                const users = ref([]); const systemLogs = ref([]); const config = ref({ maintenanceMode: false }); 
+                const announcement = ref({ message: '', type: 'info', isActive: true }); 
+                const token = localStorage.getItem('quinn_token'); 
+                const currentTab = ref('users');
+                const activeModal = ref(null);
+                const loading = ref(false);
+
+                // Plan Editing Vars
+                const editingUser = ref({});
+                const planForm = ref({ plan: 'basic', days: 30 });
+
                 if (!token) window.location.href = 'index.html';
-                const fetchData = async () => { try { const usersRes = await axios.get('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } }); users.value = usersRes.data.users.map(u => ({...u, access: u.access || []})); const configRes = await axios.get('/api/system/config'); if(configRes.data) config.value = configRes.data; const annRes = await axios.get('/api/announcement'); if(annRes.data?.data) announcement.value = annRes.data.data; fetchLogs(); } catch (e) { alert('Access Denied'); window.location.href = 'dashboard.html'; } };
+
+                const fetchData = async () => { 
+                    try { 
+                        const usersRes = await axios.get('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } }); 
+                        users.value = usersRes.data.users.map(u => ({...u, access: u.access || []})); 
+                        const configRes = await axios.get('/api/system/config'); if(configRes.data) config.value = configRes.data; 
+                        const annRes = await axios.get('/api/announcement'); if(annRes.data?.data) announcement.value = annRes.data.data; 
+                        fetchLogs(); 
+                    } catch (e) { alert('Access Denied'); window.location.href = 'dashboard.html'; } 
+                };
+                
                 const fetchLogs = async () => { try { const res = await axios.get('/api/admin/logs', { headers: { 'Authorization': `Bearer ${token}` } }); systemLogs.value = res.data.logs; } catch (e) {} };
                 const saveConfig = async () => { try { await axios.post('/api/admin/system/config', config.value, { headers: { 'Authorization': `Bearer ${token}` } }); } catch(e) { alert(e.message); } };
                 const saveAnnouncement = async () => { announcement.value.isActive = true; try { await axios.post('/api/admin/announcement', announcement.value, { headers: { 'Authorization': `Bearer ${token}` } }); alert('Saved!'); } catch(e) { alert(e.message); } };
@@ -57,9 +202,47 @@
                 const loginAs = async (userId) => { if(!confirm('Ghost Login?')) return; try { const res = await axios.post('/api/admin/login-as', { userId }, { headers: { 'Authorization': `Bearer ${token}` } }); localStorage.setItem('quinn_admin_backup', token); localStorage.setItem('quinn_token', res.data.token); localStorage.setItem('quinn_user', JSON.stringify(res.data.user)); window.location.href = 'dashboard.html'; } catch (e) { alert(e.message); } };
                 const logout = () => { localStorage.clear(); window.location.href = 'index.html'; };
                 const updateAccess = async (user) => { try { await axios.post('/api/admin/change-access', { userId: user._id, access: user.access }, { headers: { 'Authorization': `Bearer ${token}` } }); } catch(e) { alert(e.message); } };
+                
+                // ✅ Plan Management Functions
+                const getPlanBadge = (plan) => {
+                    if (plan === 'pro') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
+                    if (plan === 'basic') return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
+                    if (plan === 'trial') return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
+                    return 'bg-gray-700 text-gray-400 border-gray-600';
+                };
+                
+                const getDaysLeft = (date) => {
+                    if (!date) return 0;
+                    const diff = new Date(date) - new Date();
+                    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+                };
+
+                const openPlanModal = (user) => {
+                    editingUser.value = user;
+                    planForm.value = { userId: user._id, plan: user.plan || 'basic', days: 30 };
+                    activeModal.value = 'editPlan';
+                };
+
+                const savePlan = async () => {
+                    loading.value = true;
+                    try {
+                        const res = await axios.post('/api/admin/users/extend-plan', planForm.value, { headers: { 'Authorization': `Bearer ${token}` } });
+                        alert('✅ ' + res.data.message);
+                        activeModal.value = null;
+                        fetchData(); // Refresh list
+                    } catch (e) { alert('❌ Error: ' + (e.response?.data?.message || e.message)); }
+                    finally { loading.value = false; }
+                };
+
                 const activeBots = computed(() => users.value.filter(u => u.settings?.isBotActive).length);
                 onMounted(() => fetchData());
-                return { currentTab, users, systemLogs, config, announcement, activeBots, fetchData, fetchLogs, saveConfig, saveAnnouncement, clearAnnouncement, toggleBan, loginAs, logout, resetPassword, updateAccess };
+                
+                return { 
+                    currentTab, users, systemLogs, config, announcement, activeBots, loading, activeModal,
+                    fetchData, fetchLogs, saveConfig, saveAnnouncement, clearAnnouncement, toggleBan, loginAs, logout, resetPassword, updateAccess,
+                    // New Returns
+                    getPlanBadge, getDaysLeft, openPlanModal, savePlan, editingUser, planForm
+                };
             }
         }).mount('#app');
     </script>
