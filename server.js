@@ -1,5 +1,4 @@
 require('dotenv').config();
-const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -9,22 +8,26 @@ const axios = require('axios');
 const cron = require('node-cron');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const nodemailer = require('nodemailer');
-const crypto = require('crypto');
 const multer = require('multer');
 const FormData = require('form-data');
 const fs = require('fs');
+const path = require('path'); // ✅ Import path module
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// ✅ Serve static files correctly using path.join
 app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({ dest: 'uploads/' });
 
+// Database Connection
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log("✅ [Quinn AI] Database Connected!"))
     .catch(err => console.error("❌ Database Error:", err));
 
+// Email Configuration
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } 
@@ -35,6 +38,7 @@ async function sendEmailNotify(to, subject, html) {
     try { await transporter.sendMail({ from: '"Quinn AI" <no-reply@quinn.ai>', to, subject, html }); } catch (e) {}
 }
 
+// Mongoose Schemas
 const systemLogSchema = new mongoose.Schema({ timestamp: { type: Date, default: Date.now }, level: { type: String, default: 'INFO' }, action: String, details: String, actor: String });
 const SystemLog = mongoose.model('SystemLog', systemLogSchema);
 async function sysLog(action, details, actor = 'System', level = 'INFO') { await new SystemLog({ action, details, actor, level }).save(); console.log(`[${level}] ${action}`); }
@@ -55,7 +59,6 @@ const userSchema = new mongoose.Schema({
     settings: {
         fbToken: { type: String, default: '' }, 
         adAccountId: { type: String, default: '' }, 
-        
         isBotActive: { type: Boolean, default: false }, 
         stopLossLimit: { type: Number, default: 500 }, 
         minPurchase: { type: Number, default: 1 },
@@ -69,9 +72,13 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
+// Middlewares
 const adminMiddleware = async (req, res, next) => { const token = req.header('Authorization'); if (!token) return res.status(401).json({ message: 'No Token' }); try { const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET); const user = await User.findById(decoded.id); if (!user || user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' }); req.user = user; next(); } catch (e) { res.status(401).json({ message: 'Invalid Token' }); } };
 const authMiddleware = async (req, res, next) => { const token = req.header('Authorization'); if (!token) return res.status(401).json({ message: 'No Token' }); try { const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET); const user = await User.findById(decoded.id); if (!user.isActive) return res.status(403).json({ message: 'Banned' }); req.user = user; next(); } catch (e) { res.status(401).json({ message: 'Invalid Token' }); } };
 
+// --- Routes ---
+
+// Admin & System
 app.get('/api/system/config', async (req, res) => res.json(await SystemConfig.findOne()));
 app.post('/api/admin/system/config', adminMiddleware, async (req, res) => { await SystemConfig.findOneAndUpdate({}, req.body); await sysLog('Config Updated', `Maint: ${req.body.maintenanceMode}`, req.user.name); res.json({status:'Success'}); });
 app.get('/api/announcement', async (req, res) => res.json({ status: 'Success', data: await Announcement.findOne().sort({ updatedAt: -1 }) }));
@@ -83,13 +90,16 @@ app.post('/api/admin/login-as', adminMiddleware, async (req, res) => { try { con
 app.post('/api/admin/reset-password', adminMiddleware, async (req, res) => { try { const user = await User.findById(req.body.userId); user.password = await bcrypt.hash(req.body.newPassword, 10); await user.save(); res.json({ status: 'Success' }); } catch (e) { res.status(500).json({ message: e.message }); } });
 app.post('/api/admin/change-access', adminMiddleware, async (req, res) => { try { await User.findByIdAndUpdate(req.body.userId, { access: req.body.access }); res.json({ status: 'Success' }); } catch (e) { res.status(500).json({ message: e.message }); } });
 
+// Auth
 app.post('/api/register', async (req, res) => { try { const { name, email, password } = req.body; if(await User.findOne({ email })) return res.status(400).json({ message: 'Email Exists' }); const sysConfig = await SystemConfig.findOne(); const defaults = sysConfig ? sysConfig.defaultSettings : {}; const user = new User({ name, email, password: await bcrypt.hash(password, 10), settings: { stopLossLimit: defaults.stopLossLimit || 500, targetRoas: defaults.targetRoas || 2.5, profitMargin: defaults.profitMargin || 40 } }); await user.save(); await sysLog('New User', email, 'System'); res.json({ status: 'Success' }); } catch(e) { res.status(500).json({ message: e.message }); } });
 app.post('/api/login', async (req, res) => { try { const { email, password } = req.body; const user = await User.findOne({ email }); if(!user || !(await bcrypt.compare(password, user.password))) return res.status(400).json({ message: 'Invalid' }); if(!user.isActive) return res.status(403).json({ message: 'Banned' }); res.json({ status: 'Success', token: jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' }), user: { name: user.name, role: user.role, access: user.access } }); } catch(e){ res.status(500).json({message:e.message}); } });
 
+// User Settings
 app.get('/api/me/settings', authMiddleware, async (req, res) => res.json(req.user.settings));
 app.post('/api/me/settings', authMiddleware, async (req, res) => { try { if(req.body.testEmail) { await sendEmailNotify(req.user.email, 'Test', 'Success'); return res.json({status:'Success'}); } const u = await User.findById(req.user.id); u.settings = {...u.settings, ...req.body}; await u.save(); res.json({status:'Success'}); } catch(e){ res.status(500).json({message:e.message}); } });
 app.get('/api/me/logs', authMiddleware, async (req, res) => res.json(req.user.logs));
 
+// Facebook Integration
 app.get('/api/connect-facebook', authMiddleware, (req, res) => { 
     const scopes = 'ads_management,ads_read,public_profile,business_management,pages_show_list,pages_read_engagement'; 
     const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${process.env.FB_APP_ID}&redirect_uri=${process.env.FB_CALLBACK_URL}&state=${req.header('Authorization').replace('Bearer ', '')}&scope=${scopes}`;
@@ -152,6 +162,7 @@ app.get('/api/check-now', authMiddleware, async (req, res) => {
     } catch (e) { res.json({ status: 'Error', message: e.message }); }
 });
 
+// Campaign Launcher
 app.post('/api/launch', authMiddleware, upload.single('image'), async (req, res) => {
     const user = req.user;
     const { name, budget, caption, audience_id, page_id } = req.body;
@@ -181,17 +192,15 @@ app.post('/api/launch', authMiddleware, upload.single('image'), async (req, res)
     }
 });
 
+// Tools & AI
 app.get('/api/tools/search-pages', authMiddleware, async (req, res) => { res.json({status:'Success', data:[]}); });
-// ... (ส่วน Import และ Config เหมือนเดิม) ...
 
-// แก้ไข API AI ให้ฉลาดขึ้น รองรับ Tone
 app.post('/api/ai/generate-copy', authMiddleware, async (req, res) => {
     try {
-        const { product, tone } = req.body; // รับค่า tone มาด้วย
+        const { product, tone } = req.body; 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         
-        // สร้าง Prompt ตาม Tone
         let prompt = `เขียนแคปชั่นโฆษณา Facebook สำหรับสินค้า: "${product}"`;
         if (tone === 'hard-sell') prompt += ` \nสไตล์: ขายของหนักๆ เน้นปิดการขาย กระตุ้นความอยากได้ เร่งด่วน ใส่ Emoji เยอะๆ`;
         else if (tone === 'friendly') prompt += ` \nสไตล์: เป็นกันเอง เหมือนเพื่อนเล่าให้เพื่อนฟัง จริงใจ ไม่ยัดเยียดขาย`;
@@ -205,16 +214,15 @@ app.post('/api/ai/generate-copy', authMiddleware, async (req, res) => {
     }
 });
 
-// ... (ส่วนอื่นๆ ของ server.js เหมือนเดิมทุกประการ) ...
-// (อย่าลืม Copy ส่วนอื่นๆ มาด้วยนะครับ หรือใช้ไฟล์ server.js เดิมแล้วแก้แค่ api/ai/generate-copy ก็ได้ครับ)
 app.get('/api/tools/search-interests', authMiddleware, async (req, res) => { try { const fbRes = await axios.get(`https://graph.facebook.com/v18.0/search`, { params: { type: 'adinterest', q: req.query.q, access_token: req.user.settings.fbToken, limit: 20, locale: 'th_TH' } }); res.json({ status: 'Success', data: fbRes.data.data.map(i => ({ id: i.id, name: i.name, audience_size: i.audience_size_upper_bound, topic: i.topic })) }); } catch (e) { res.status(500).json({ message: 'FB Error' }); } });
+
+// Catch-all Route for Static Files
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 async function checkAdsForUser(user) { }
 cron.schedule('*/15 * * * *', async () => { const activeUsers = await User.find({ 'settings.isBotActive': true }); for (const user of activeUsers) await checkAdsForUser(user); });
 
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 app.listen(PORT, () => console.log(`🌐 Server Running Port ${PORT}`));
