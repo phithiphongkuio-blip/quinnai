@@ -2,7 +2,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 
 // เปลี่ยนอีเมลตรงนี้เป็นอีเมลที่คุณใช้สมัครสมาชิก
-const TARGET_EMAIL = 'Phithiphong_k@yahoo.com'; 
+const TARGET_EMAIL = 'phithiphong_k@yahoo.com'; 
 
 const userSchema = new mongoose.Schema({ email: String, role: String }, { strict: false });
 const User = mongoose.model('User', userSchema);
