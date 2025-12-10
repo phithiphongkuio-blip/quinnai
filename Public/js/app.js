@@ -75,7 +75,9 @@ const app = createApp({
                 if (!loadedSettings.autoScale.whitelistedAds) loadedSettings.autoScale.whitelistedAds = [];
                 
                 settings.value = loadedSettings;
-                if(data.userPlan) userPlan.value = data.userPlan; // เก็บข้อมูล Plan
+                if (data.userPlan) {
+    userPlan.value = data.userPlan;
+} else {
                 
                 try { const annRes = await axios.get('/api/announcement'); announcement.value = annRes.data.data; } catch(e){}
                 if(checkAccess('facebook')) { fetchAdAccounts(); fetchFacebookPages(); }
