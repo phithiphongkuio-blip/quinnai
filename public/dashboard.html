@@ -18,6 +18,8 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         #app-loading { position: fixed; inset: 0; background: #F3F4F6; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .animate-scale-up { animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes scaleUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body class="bg-[#F3F4F6] h-screen overflow-hidden flex font-[Prompt]">
@@ -90,7 +92,6 @@
                     <button @click="isSidebarOpen = true" class="md:hidden text-gray-600 hover:text-indigo-600 transition"><i class="fa-solid fa-bars text-2xl"></i></button>
                     <div><h1 class="text-lg md:text-xl font-bold text-gray-800 capitalize flex items-center gap-2"><span v-if="currentView === 'overview'">📊 <span class="hidden md:inline">ภาพรวมธุรกิจ</span></span><span v-if="currentView === 'facebook'">💙 <span class="hidden md:inline">Facebook Manager</span></span><span v-if="currentView === 'tiktok'">🖤 <span class="hidden md:inline">TikTok Manager</span></span></h1><p class="text-xs text-gray-400 mt-0.5 hidden md:block">Quinn AI: ยินดีต้อนรับกลับ, {{ user.name }}</p></div>
                 </div>
-                <!-- Tools Buttons -->
                 <div class="flex items-center gap-2 bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">
                     <button @click="openModal('audience')" class="flex items-center gap-2 px-3 py-2 bg-white text-purple-600 rounded-lg text-xs font-bold border border-gray-200 shadow-sm hover:shadow-md hover:text-purple-700 transition"><i class="fa-solid fa-users-viewfinder"></i> <span class="hidden md:inline">Audience Lab</span></button>
                     <button @click="openModal('spy')" class="flex items-center gap-2 px-3 py-2 bg-white text-gray-700 rounded-lg text-xs font-bold border border-gray-200 shadow-sm hover:shadow-md hover:text-black transition"><i class="fa-solid fa-user-secret"></i> <span class="hidden md:inline">Spy Tool</span></button>
@@ -178,10 +179,9 @@
                             </div>
                         </div>
 
-                        <!-- Chart -->
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><div class="h-72 w-full"><canvas id="spendChart"></canvas></div></div>
 
-                        <!-- Table -->
+                        <!-- Ads Table -->
                         <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
                             <div class="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center"><span class="font-bold text-gray-700">รายการโฆษณา (Ads Performance)</span></div>
                             <div class="overflow-x-auto">
@@ -207,7 +207,14 @@
                                             
                                             <td class="p-4 text-center">
                                                 <div class="relative flex items-center justify-center">
-                                                    <input type="number" v-model.lazy="settings.autoScale.adLimits[ad.id]" @change="saveSettings(false)" :disabled="!settings.autoScale?.whitelistedAds?.includes(ad.id)" :placeholder="settings.autoScale.maxBudget" class="w-24 border border-gray-200 rounded-lg p-1.5 text-xs text-center font-bold focus:ring-1 focus:ring-indigo-500 outline-none disabled:bg-gray-50 disabled:text-gray-400 placeholder-gray-300">
+                                                    <input 
+                                                        type="number" 
+                                                        v-model.lazy="settings.autoScale.adLimits[ad.id]" 
+                                                        @change="saveSettings(false)"
+                                                        :disabled="!settings.autoScale?.whitelistedAds?.includes(ad.id)"
+                                                        :placeholder="settings.autoScale.maxBudget" 
+                                                        class="w-24 border border-gray-200 rounded-lg p-1.5 text-xs text-center font-bold focus:ring-1 focus:ring-indigo-500 outline-none disabled:bg-gray-50 disabled:text-gray-400 placeholder-gray-300"
+                                                    >
                                                     <span v-if="!settings.autoScale?.adLimits?.[ad.id]" class="absolute text-[9px] text-gray-300 pointer-events-none mt-6">(Global)</span>
                                                 </div>
                                             </td>
@@ -228,55 +235,12 @@
             </div>
         </main>
 
-        <!-- Spy Tool Modal -->
-        <div v-show="activeModal === 'spy'" style="display: none;" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="closeModal">
-            <div class="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl animate-scale-up">
-                <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4"><div><h3 class="font-bold text-xl text-gray-800 flex items-center gap-2"><i class="fa-solid fa-user-secret text-black"></i> Competitor Spy Tool</h3><p class="text-xs text-gray-400 mt-1">แอบส่องโฆษณาคู่แข่งในตลาด</p></div><button @click="closeModal" class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500 transition flex items-center justify-center"><i class="fa-solid fa-times"></i></button></div>
-                <div class="flex gap-3 mb-6"><input v-model="spyKeyword" @keyup.enter="searchCompetitors" type="text" class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none bg-gray-50" placeholder="พิมพ์ชื่อเพจคู่แข่ง หรือ Keyword สินค้า..."><button @click="searchCompetitors" :disabled="spyLoading" class="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-gray-800 transition flex items-center gap-2"><span v-if="!spyLoading"><i class="fa-solid fa-search"></i> ส่องเลย</span><span v-else><i class="fa-solid fa-circle-notch fa-spin"></i> รอแป๊บ...</span></button></div>
-                <div v-if="spyResults.length > 0" class="border border-gray-100 rounded-xl overflow-hidden max-h-[400px] overflow-y-auto custom-scrollbar"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-bold"><tr><th class="p-4">Page Name</th><th class="p-4 text-center">Active Ads</th><th class="p-4 text-right">Action</th></tr></thead><tbody class="divide-y divide-gray-100"><tr v-for="item in spyResults" :key="item.id" class="hover:bg-gray-50 transition"><td class="p-4 font-bold text-gray-800 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-500"><i class="fa-brands fa-facebook-f"></i></div>{{ item.name }}</td><td class="p-4 text-center"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">{{ item.ads_count }} ตัว</span></td><td class="p-4 text-right"><a :href="item.link" target="_blank" class="text-blue-600 hover:underline text-xs font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition">ดูโฆษณา <i class="fa-solid fa-external-link-alt ml-1"></i></a></td></tr></tbody></table></div>
-                <div v-else-if="spySearched" class="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200"><i class="fa-solid fa-ghost text-3xl mb-3 opacity-50"></i><p class="text-sm font-medium">ไม่พบข้อมูลคู่แข่ง หรือระบบยังไม่เชื่อมต่อ API</p></div>
-            </div>
-        </div>
-
-        <!-- Audience Lab Modal -->
-        <div v-show="activeModal === 'audience'" style="display: none;" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="closeModal">
-            <div class="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl animate-scale-up">
-                <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-                    <div><h3 class="font-bold text-xl text-purple-700 flex items-center gap-2"><i class="fa-solid fa-users-viewfinder"></i> Audience Lab</h3><p class="text-xs text-gray-400 mt-1">สร้างกลุ่มเป้าหมาย LAL จากคนทักเพจ</p></div>
-                    <button @click="closeModal" class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500 transition flex items-center justify-center"><i class="fa-solid fa-times"></i></button>
-                </div>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-2">เลือกเพจต้นทาง</label>
-                        <select v-model="audienceForm.pageId" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
-                            <option value="" disabled>-- เลือกเพจ --</option>
-                            <option v-for="page in facebookPagesList" :key="page.id" :value="page.id">{{ page.name }}</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-2">ประเทศ</label>
-                        <select v-model="audienceForm.country" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
-                            <option value="TH">Thailand (ไทย)</option>
-                            <option value="US">United States</option>
-                        </select>
-                    </div>
-                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                        <h4 class="font-bold text-purple-800 text-sm mb-2"><i class="fa-solid fa-wand-magic-sparkles"></i> สิ่งที่คุณจะได้:</h4>
-                        <ul class="text-xs text-purple-700 space-y-1 ml-4 list-disc">
-                            <li>Custom Audience: คนที่ทักเพจใน 365 วัน</li>
-                            <li>Lookalike Audience: คนหน้าเหมือน 1% (แม่นยำสูง)</li>
-                        </ul>
-                    </div>
-                    <button @click="createAudience" :disabled="audienceLoading || !audienceForm.pageId" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:opacity-90 transition disabled:opacity-50">
-                        <span v-if="!audienceLoading">🚀 เริ่มสร้าง Audience ทันที</span>
-                        <span v-else><i class="fa-solid fa-circle-notch fa-spin"></i> กำลังเชื่อมต่อ Facebook...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Launcher Modal -->
-        <div v-show="activeModal === 'launcher'" style="display: none;" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-md" @click.self="closeModal">
+        <!-- Modals -->
+        <div v-show="activeModal === 'ai'" style="display: none;" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="closeModal"><div class="bg-white rounded-3xl w-full max-w-lg p-6"><button @click="closeModal" class="float-right">X</button><h3 class="font-bold text-lg mb-4">AI Writer</h3><input v-model="aiForm.product" class="border p-2 w-full mb-2" placeholder="Product..."><button @click="generateCopy" class="bg-purple-600 text-white px-4 py-2 rounded">Generate</button><textarea v-if="aiResult" :value="aiResult" class="w-full h-32 border p-2 mt-2"></textarea></div></div>
+        <div v-show="activeModal === 'hunter'" style="display: none;" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="closeModal"><div class="bg-white rounded-3xl w-full max-w-2xl p-6"><button @click="closeModal" class="float-right">X</button><h3 class="font-bold text-lg mb-4">Interest Hunter</h3><input v-model="hunterKeyword" class="border p-2 w-full mb-2" placeholder="Keyword..."><button @click="searchInterests" class="bg-indigo-600 text-white px-4 py-2 rounded">Search</button><div class="mt-2"><div v-for="i in interestResults" class="border-b p-2">{{ i.name }}</div></div></div></div>
+        
+        <!-- Launcher (รวม Interest Hunter & AI) -->
+        <div v-show="activeModal === 'launcher'" style="display: none;" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="closeModal">
             <div class="bg-white rounded-3xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-scale-up">
                 <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                     <div><h3 class="font-bold text-xl text-gray-800"><i class="fa-solid fa-rocket text-indigo-600 mr-2"></i>Create New Campaign</h3><p class="text-xs text-gray-400">ระบบสร้างแคมเปญอัตโนมัติด้วย AI</p></div>
@@ -314,7 +278,10 @@
                                     <button @click="quickGenerateAi('promo')" class="px-3 py-1 bg-orange-50 text-orange-600 border border-orange-100 rounded-full text-[10px] font-bold hover:bg-orange-100 transition whitespace-nowrap"><i class="fa-solid fa-tags mr-1"></i> โปรโมชั่น</button>
                                     <button @click="quickGenerateAi('educated')" class="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-full text-[10px] font-bold hover:bg-blue-100 transition whitespace-nowrap"><i class="fa-solid fa-graduation-cap mr-1"></i> ให้ความรู้</button>
                                 </div>
-                                <div class="relative w-full"><textarea v-model="launcher.caption" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 resize-none" placeholder="ใส่แคปชั่น หรือกดเลือก Tone ด้านบน..." rows="10"></textarea><div v-if="aiLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl z-10"><i class="fa-solid fa-circle-notch fa-spin text-indigo-600 text-xl"></i><span class="ml-2 text-sm font-bold text-indigo-600">AI กำลังเขียน...</span></div></div>
+                                <div class="relative w-full">
+                                    <textarea v-model="launcher.caption" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 resize-none" placeholder="ใส่แคปชั่น หรือกดเลือก Tone ด้านบน..." rows="10"></textarea>
+                                    <div v-if="aiLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl z-10"><i class="fa-solid fa-circle-notch fa-spin text-indigo-600 text-xl"></i><span class="ml-2 text-sm font-bold text-indigo-600">AI กำลังเขียน...</span></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -323,10 +290,7 @@
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <h4 class="font-bold text-gray-700 mb-4 flex items-center gap-2"><span class="bg-indigo-100 text-indigo-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span> กลุ่มเป้าหมาย (Interest Hunter)</h4>
                         <div class="flex gap-2 mb-4"><input v-model="hunterKeyword" @keyup.enter="searchInterests" type="text" class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="พิมพ์คำค้นหา (เช่น นาฬิกา, ผิวขาว)..."><button @click="searchInterests" :disabled="hunterLoading" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-indigo-700 transition"><span v-if="!hunterLoading"><i class="fa-solid fa-search"></i> ค้นหา</span><span v-else><i class="fa-solid fa-circle-notch fa-spin"></i></span></button></div>
-                        <div class="mb-4 min-h-[40px] p-2 bg-gray-50 rounded-xl border border-dashed border-gray-200 flex flex-wrap gap-2">
-                            <span v-if="launcher.targeting.length === 0" class="text-xs text-gray-400 p-1">ยังไม่ได้เลือกกลุ่มเป้าหมาย (เลือกจากรายการด้านล่าง)</span>
-                            <span v-for="(tag, index) in launcher.targeting" :key="index" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 border border-indigo-200">{{ tag.name }} <button @click="launcher.targeting.splice(index, 1)" class="hover:text-red-500"><i class="fa-solid fa-times"></i></button></span>
-                        </div>
+                        <div class="mb-4 min-h-[40px] p-2 bg-gray-50 rounded-xl border border-dashed border-gray-200 flex flex-wrap gap-2"><span v-if="launcher.targeting.length === 0" class="text-xs text-gray-400 p-1">ยังไม่ได้เลือกกลุ่มเป้าหมาย (เลือกจากรายการด้านล่าง)</span><span v-for="(tag, index) in launcher.targeting" :key="index" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 border border-indigo-200">{{ tag.name }} <button @click="launcher.targeting.splice(index, 1)" class="hover:text-red-500"><i class="fa-solid fa-times"></i></button></span></div>
                         <div v-if="interestResults.length > 0" class="max-h-40 overflow-y-auto custom-scrollbar border border-gray-100 rounded-xl"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-bold"><tr><th class="p-2 pl-4">Interest Name</th><th class="p-2">Size</th><th class="p-2 text-right">Action</th></tr></thead><tbody class="divide-y divide-gray-100"><tr v-for="item in interestResults" :key="item.id" class="hover:bg-gray-50"><td class="p-2 pl-4 font-medium text-gray-700">{{ item.name }}</td><td class="p-2 text-gray-500 text-xs">{{ formatNumber(item.audience_size) }}</td><td class="p-2 text-right"><button @click="addInterest(item)" :disabled="launcher.targeting.some(t => t.id === item.id)" :class="launcher.targeting.some(t => t.id === item.id) ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' : 'bg-indigo-50 text-indigo-600 hover:text-indigo-800 border-indigo-100 hover:bg-indigo-100'" class="text-xs font-bold px-3 py-1 rounded border transition"><span v-if="launcher.targeting.some(t => t.id === item.id)"><i class="fa-solid fa-check"></i> เลือกแล้ว</span><span v-else>+ เลือก</span></button></td></tr></tbody></table></div>
                     </div>
                 </div>
@@ -337,7 +301,54 @@
             </div>
         </div>
 
-        <!-- ✅ Profile & Security Modal -->
+        <!-- Spy Tool -->
+        <div v-show="activeModal === 'spy'" style="display: none;" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="closeModal">
+            <div class="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl animate-scale-up">
+                <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4"><div><h3 class="font-bold text-xl text-gray-800 flex items-center gap-2"><i class="fa-solid fa-user-secret text-black"></i> Competitor Spy Tool</h3><p class="text-xs text-gray-400 mt-1">แอบส่องโฆษณาคู่แข่งในตลาด</p></div><button @click="closeModal" class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500 transition flex items-center justify-center"><i class="fa-solid fa-times"></i></button></div>
+                <div class="flex gap-3 mb-6"><input v-model="spyKeyword" @keyup.enter="searchCompetitors" type="text" class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none bg-gray-50" placeholder="พิมพ์ชื่อเพจคู่แข่ง หรือ Keyword สินค้า..."><button @click="searchCompetitors" :disabled="spyLoading" class="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-gray-800 transition flex items-center gap-2"><span v-if="!spyLoading"><i class="fa-solid fa-search"></i> ส่องเลย</span><span v-else><i class="fa-solid fa-circle-notch fa-spin"></i> รอแป๊บ...</span></button></div>
+                <div v-if="spyResults.length > 0" class="border border-gray-100 rounded-xl overflow-hidden max-h-[400px] overflow-y-auto custom-scrollbar"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-bold"><tr><th class="p-4">Page Name</th><th class="p-4 text-center">Active Ads</th><th class="p-4 text-right">Action</th></tr></thead><tbody class="divide-y divide-gray-100"><tr v-for="item in spyResults" :key="item.id" class="hover:bg-gray-50 transition"><td class="p-4 font-bold text-gray-800 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-500"><i class="fa-brands fa-facebook-f"></i></div>{{ item.name }}</td><td class="p-4 text-center"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">{{ item.ads_count }} ตัว</span></td><td class="p-4 text-right"><a :href="item.link" target="_blank" class="text-blue-600 hover:underline text-xs font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition">ดูโฆษณา <i class="fa-solid fa-external-link-alt ml-1"></i></a></td></tr></tbody></table></div>
+                <div v-else-if="spySearched" class="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200"><i class="fa-solid fa-ghost text-3xl mb-3 opacity-50"></i><p class="text-sm font-medium">ไม่พบข้อมูลคู่แข่ง หรือระบบยังไม่เชื่อมต่อ API</p></div>
+            </div>
+        </div>
+
+        <!-- Audience Lab -->
+        <div v-show="activeModal === 'audience'" style="display: none;" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="closeModal">
+            <div class="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl animate-scale-up">
+                <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                    <div><h3 class="font-bold text-xl text-purple-700 flex items-center gap-2"><i class="fa-solid fa-users-viewfinder"></i> Audience Lab</h3><p class="text-xs text-gray-400 mt-1">สร้างกลุ่มเป้าหมาย LAL จากคนทักเพจ</p></div>
+                    <button @click="closeModal" class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500 transition flex items-center justify-center"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">เลือกเพจต้นทาง</label>
+                        <select v-model="audienceForm.pageId" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                            <option value="" disabled>-- เลือกเพจ --</option>
+                            <option v-for="page in facebookPagesList" :key="page.id" :value="page.id">{{ page.name }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">ประเทศ</label>
+                        <select v-model="audienceForm.country" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                            <option value="TH">Thailand (ไทย)</option>
+                            <option value="US">United States</option>
+                        </select>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                        <h4 class="font-bold text-purple-800 text-sm mb-2"><i class="fa-solid fa-wand-magic-sparkles"></i> สิ่งที่คุณจะได้:</h4>
+                        <ul class="text-xs text-purple-700 space-y-1 ml-4 list-disc">
+                            <li>Custom Audience: คนที่ทักเพจใน 365 วัน</li>
+                            <li>Lookalike Audience: คนหน้าเหมือน 1% (แม่นยำสูง)</li>
+                        </ul>
+                    </div>
+                    <button @click="createAudience" :disabled="audienceLoading || !audienceForm.pageId" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:opacity-90 transition disabled:opacity-50">
+                        <span v-if="!audienceLoading">🚀 เริ่มสร้าง Audience ทันที</span>
+                        <span v-else><i class="fa-solid fa-circle-notch fa-spin"></i> กำลังเชื่อมต่อ Facebook...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ Profile Management (Updated) -->
         <div v-show="activeModal === 'profile'" style="display: none;" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="closeModal">
             <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-scale-up">
                 <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
@@ -345,17 +356,28 @@
                     <button @click="closeModal" class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500 transition flex items-center justify-center"><i class="fa-solid fa-times"></i></button>
                 </div>
                 <div class="space-y-4">
+                    <!-- Email Read-only -->
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">Email</label>
-                        <div class="flex gap-2">
-                            <input type="text" :value="user.email" disabled class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-500 cursor-not-allowed">
-                            <button @click="verifyEmail" class="bg-indigo-50 text-indigo-600 px-3 rounded-xl text-xs font-bold hover:bg-indigo-100 transition whitespace-nowrap"><i class="fa-solid fa-envelope-circle-check mr-1"></i> ยืนยันอีเมล</button>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Email (บัญชีผู้ใช้)</label>
+                        <div class="relative">
+                            <input type="text" :value="user.email" disabled class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-500 cursor-not-allowed">
+                            <i class="fa-solid fa-lock absolute right-4 top-3.5 text-gray-400"></i>
                         </div>
                     </div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">New Password</label><input v-model="profileForm.password" type="password" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Confirm New Password</label><input v-model="profileForm.confirmPassword" type="password" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••"></div>
-                    <div class="pt-4 flex gap-2"><button @click="updateProfile" class="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-lg hover:opacity-90 transition">บันทึกการเปลี่ยนแปลง</button></div>
-                    <div class="pt-4 border-t border-gray-100 text-center"><button @click="testEmailNotify" :disabled="loading" class="text-xs text-gray-400 hover:text-indigo-600 transition"><i class="fa-solid fa-paper-plane mr-1"></i> ทดสอบระบบส่งอีเมล (Test Email)</button></div>
+                    
+                    <!-- Password Update -->
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">เปลี่ยนรหัสผ่านใหม่</label><input v-model="profileForm.password" type="password" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition" placeholder="ระบุรหัสผ่านใหม่"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">ยืนยันรหัสผ่านใหม่</label><input v-model="profileForm.confirmPassword" type="password" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition" placeholder="ระบุรหัสผ่านอีกครั้ง"></div>
+
+                    <!-- Actions -->
+                    <div class="pt-4 flex gap-2">
+                        <button @click="updateProfile" class="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-lg hover:opacity-90 transition transform active:scale-95">บันทึกการเปลี่ยนแปลง</button>
+                    </div>
+                    
+                    <!-- Test Email Button -->
+                    <div class="pt-4 border-t border-gray-100 text-center">
+                        <button @click="testEmailNotify" :disabled="loading" class="text-xs text-gray-400 hover:text-indigo-600 transition flex items-center justify-center w-full gap-2 py-2 hover:bg-gray-50 rounded-lg"><i class="fa-solid fa-paper-plane"></i> ทดสอบระบบส่งอีเมล (Test Email)</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -363,8 +385,7 @@
         <div v-if="isGhostMode" class="fixed bottom-6 right-6 z-[60] animate-bounce"><button @click="exitGhostMode" class="bg-red-600 text-white font-bold py-3 px-6 rounded-full shadow-2xl border-4 border-white">Exit Ghost Mode</button></div>
 
     </div>
-    <!-- ✅ Force script loading -->
-    <script src="/js/app.js"></script> 
+    <script src="/js/app.js?v=4"></script> 
     <script>setTimeout(() => { const loader = document.getElementById('app-loading'); if(loader) loader.style.display = 'none'; }, 3000);</script>
 </body>
 </html>
