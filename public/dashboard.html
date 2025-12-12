@@ -1,10 +1,5 @@
 <!DOCTYPE html>
-<!-- ตัวอย่าง: เพิ่มในส่วนท้ายของ Sidebar หรือหน้า Settings -->
-<!-- ปุ่มทดสอบส่งอีเมล -->
-<button @click="testEmailNotify" :disabled="loading" class="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2">
-    <i class="fa-solid fa-paper-plane"></i> Test Email Notification
-</button>
-
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,27 +11,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
-    <style>
-        /* ✅ v-cloak: ซ่อน Element จนกว่า Vue จะโหลดเสร็จ */
-        [v-cloak] { display: none !important; }
-        
-        /* Loading Overlay: บังหน้าจอไว้ก่อน */
-        #app-loading {
-            position: fixed; inset: 0; background: #F3F4F6; z-index: 9999;
-            display: flex; justify-content: center; align-items: center; flex-direction: column;
-        }
-    </style>
+    <style> [v-cloak] { display: none !important; } .custom-scrollbar::-webkit-scrollbar { width: 6px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; } </style>
 </head>
 <body class="bg-[#F3F4F6] h-screen overflow-hidden flex font-[Prompt]">
 
-    <!-- ✅ Loading Screen (แสดงตอนเน็ตช้าหรือโหลด JS) -->
-    <div id="app-loading">
-        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-indigo-600 mb-4"></i>
-        <h2 class="text-gray-600 font-bold">Quinn AI กำลังโหลด...</h2>
-        <p class="text-xs text-gray-400 mt-2">หากค้างนานเกิน 10 วินาที ให้ลองรีเฟรช</p>
-    </div>
-
-    <!-- ✅ Main App (ใส่ v-cloak) -->
     <div id="app" class="flex w-full h-full relative" v-cloak>
         
         <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 bg-black/50 z-30 md:hidden transition-opacity"></div>
@@ -386,14 +364,7 @@
         <div v-if="isGhostMode" class="fixed bottom-6 right-6 z-[60] animate-bounce"><button @click="exitGhostMode" class="bg-red-600 text-white font-bold py-3 px-6 rounded-full shadow-2xl border-4 border-white">Exit Ghost Mode</button></div>
 
     </div>
-    <!-- ✅ บังคับโหลดไฟล์ JS จาก Root พร้อมใส่ query เพื่อไม่ให้ Cache -->
-    <script src="/js/app.js?v=2"></script> 
-    <script>
-        // ✅ Script เสริม: ลบ Loading Screen เมื่อโหลดเสร็จ
-        setTimeout(() => {
-            const loader = document.getElementById('app-loading');
-            if(loader) loader.style.display = 'none';
-        }, 3000); // กันเหนียว 3 วิ (ปกติ Vue จะโหลดเร็วกว่านี้)
-    </script>
+    <!-- ✅ บังคับโหลดไฟล์ JS จาก Root -->
+    <script src="/js/app.js"></script> 
 </body>
 </html>
