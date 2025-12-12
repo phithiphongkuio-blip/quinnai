@@ -16,30 +16,30 @@ const FormData = require('form-data');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ 1. Middleware (ต้องอยู่บนสุด)
+// ✅ Middleware
 app.use(cors());
 app.use(express.json());
+// ระบุตำแหน่งไฟล์ Static (Frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({ dest: 'uploads/' });
 
-// ✅ 2. Database Connection
+// ✅ Database Connection
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log("✅ [Quinn AI] Database Connected!"))
     .catch(err => console.error("❌ Database Error:", err));
 
-// ✅ 3. Email Config
+// ✅ Email Config
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } 
 });
-
 async function sendEmailNotify(to, subject, html) {
     if (!to) return;
     try { await transporter.sendMail({ from: '"Quinn AI" <no-reply@quinn.ai>', to, subject, html }); } catch (e) {}
 }
 
-// ✅ 4. Schemas
+// ✅ Schemas
 const systemLogSchema = new mongoose.Schema({ timestamp: { type: Date, default: Date.now }, level: { type: String, default: 'INFO' }, action: String, details: String, actor: String });
 const SystemLog = mongoose.model('SystemLog', systemLogSchema);
 async function sysLog(action, details, actor = 'System', level = 'INFO') { await new SystemLog({ action, details, actor, level }).save(); console.log(`[${level}] ${action}`); }
@@ -75,10 +75,9 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// ✅ 5. Middlewares
+// ✅ Middlewares
 const adminMiddleware = async (req, res, next) => { const token = req.header('Authorization'); if (!token) return res.status(401).json({ message: 'No Token' }); try { const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET); const user = await User.findById(decoded.id); if (!user || user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' }); req.user = user; next(); } catch (e) { res.status(401).json({ message: 'Invalid Token' }); } };
 const authMiddleware = async (req, res, next) => { const token = req.header('Authorization'); if (!token) return res.status(401).json({ message: 'No Token' }); try { const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET); const user = await User.findById(decoded.id); if (!user.isActive) return res.status(403).json({ message: 'Banned' }); req.user = user; next(); } catch (e) { res.status(401).json({ message: 'Invalid Token' }); } };
-
 const checkPlan = (requiredLevel) => {
     return async (req, res, next) => {
         const user = req.user;
@@ -93,7 +92,8 @@ const checkPlan = (requiredLevel) => {
     };
 };
 
-// ✅ 6. API Routes
+// ================= API ROUTES =================
+
 // System & Admin
 app.get('/api/system/config', async (req, res) => res.json(await SystemConfig.findOne()));
 app.post('/api/admin/system/config', adminMiddleware, async (req, res) => { await SystemConfig.findOneAndUpdate({}, req.body); await sysLog('Config Updated', `Maint: ${req.body.maintenanceMode}`, req.user.name); res.json({status:'Success'}); });
@@ -115,7 +115,7 @@ app.post('/api/me/settings', authMiddleware, async (req, res) => { try { if(req.
 app.post('/api/me/test-email', authMiddleware, async (req, res) => { try { const userEmail = req.user.email; await sendEmailNotify(userEmail, "🔔 Quinn AI Test", `<p>Hello ${req.user.name}, this is a test email.</p>`); res.json({ status: 'Success', message: `Email sent to ${userEmail}` }); } catch (e) { res.status(500).json({ message: 'Email Error: ' + e.message }); } });
 app.get('/api/me/logs', authMiddleware, async (req, res) => res.json(req.user.logs));
 
-// Facebook Integration
+// Facebook
 app.get('/api/connect-facebook', authMiddleware, (req, res) => { const scopes = 'ads_management,ads_read,public_profile,business_management,pages_show_list,pages_read_engagement'; const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${process.env.FB_APP_ID}&redirect_uri=${process.env.FB_CALLBACK_URL}&state=${req.header('Authorization').replace('Bearer ', '')}&scope=${scopes}`; res.json({ url }); });
 app.get('/api/facebook/callback', async (req, res) => { try { const { code, state } = req.query; const tokenRes = await axios.get('https://graph.facebook.com/v18.0/oauth/access_token', { params: { client_id: process.env.FB_APP_ID, client_secret: process.env.FB_APP_SECRET, redirect_uri: process.env.FB_CALLBACK_URL, code } }); const user = await User.findById(jwt.verify(state, process.env.JWT_SECRET).id); user.settings.fbToken = tokenRes.data.access_token; await user.save(); res.redirect('/dashboard.html?status=success'); } catch (e) { res.send('Error: ' + e.message); } });
 app.get('/api/me/adaccounts', authMiddleware, async (req, res) => { try { const fbRes = await axios.get(`https://graph.facebook.com/v18.0/me/adaccounts`, { params: { access_token: req.user.settings.fbToken, fields: 'name,account_id,currency,account_status,business_name', limit: 100 } }); const accounts = fbRes.data.data.map(a => ({ id: `act_${a.account_id}`, name: a.name + (a.business_name ? ` (${a.business_name})` : ''), currency: a.currency, status: a.account_status === 1 ? 'Active' : 'Inactive' })); res.json({ status: 'Success', accounts }); } catch (e) { res.status(500).json({ message: 'FB Load Error' }); } });
@@ -137,7 +137,7 @@ app.get('/api/tools/search-interests', authMiddleware, async (req, res) => { try
 async function checkAdsForUser(user) { }
 cron.schedule('*/15 * * * *', async () => { const activeUsers = await User.find({ 'settings.isBotActive': true, plan: { $ne: 'free' } }); for (const user of activeUsers) await checkAdsForUser(user); });
 
-// ✅ 7. Catch-all Route (อยู่ล่างสุดเสมอ)
+// ✅ Catch-all Route (ต้องอยู่ล่างสุด)
 app.use((req, res) => {
     const indexPath = path.join(__dirname, 'public', 'index.html');
     if (fs.existsSync(indexPath)) { res.sendFile(indexPath); } 
