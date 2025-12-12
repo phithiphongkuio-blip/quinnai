@@ -143,6 +143,29 @@ app.get('/api/me/settings', authMiddleware, async (req, res) => { const { settin
 app.post('/api/me/settings', authMiddleware, async (req, res) => { try { if(req.body.testEmail) { await sendEmailNotify(req.user.email, 'Test', 'Success'); return res.json({status:'Success'}); } const u = await User.findById(req.user.id); u.settings = {...u.settings, ...req.body}; await u.save(); res.json({status:'Success'}); } catch(e){ res.status(500).json({message:e.message}); } });
 app.get('/api/me/logs', authMiddleware, async (req, res) => res.json(req.user.logs));
 
+// ✅ API: Verify Email Endpoint
+app.post('/api/auth/verify', async (req, res) => {
+    try {
+        const { token } = req.body;
+        
+        // ค้นหา User ที่มี token นี้
+        const user = await User.findOne({ verificationToken: token });
+        
+        if (!user) {
+            return res.status(400).json({ message: 'Token ไม่ถูกต้อง หรือถูกใช้งานไปแล้ว' });
+        }
+
+        // อัปเดตสถานะ
+        user.isVerified = true;
+        user.verificationToken = undefined; // ลบ Token ทิ้งเพื่อความปลอดภัย (ใช้ได้ครั้งเดียว)
+        await user.save();
+
+        res.json({ status: 'Success', message: 'ยืนยันอีเมลสำเร็จ!' });
+    } catch (e) {
+        console.error("Verification Error:", e);
+        res.status(500).json({ message: 'Server Error: ' + e.message });
+    }
+});
 // Facebook
 app.get('/api/connect-facebook', authMiddleware, (req, res) => { const scopes = 'ads_management,ads_read,public_profile,business_management,pages_show_list,pages_read_engagement'; const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${process.env.FB_APP_ID}&redirect_uri=${process.env.FB_CALLBACK_URL}&state=${req.header('Authorization').replace('Bearer ', '')}&scope=${scopes}`; res.json({ url }); });
 app.get('/api/facebook/callback', async (req, res) => { try { const { code, state } = req.query; const tokenRes = await axios.get('https://graph.facebook.com/v18.0/oauth/access_token', { params: { client_id: process.env.FB_APP_ID, client_secret: process.env.FB_APP_SECRET, redirect_uri: process.env.FB_CALLBACK_URL, code } }); const user = await User.findById(jwt.verify(state, process.env.JWT_SECRET).id); user.settings.fbToken = tokenRes.data.access_token; await user.save(); res.redirect('/dashboard.html?status=success'); } catch (e) { res.send('Error: ' + e.message); } });
