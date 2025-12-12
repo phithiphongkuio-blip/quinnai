@@ -16,9 +16,7 @@
 <body class="bg-[#F3F4F6] h-screen overflow-hidden flex font-[Prompt]">
 
     <div id="app" class="flex w-full h-full relative" v-cloak>
-        
         <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 bg-black/50 z-30 md:hidden transition-opacity"></div>
-
         <aside :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col justify-between h-full shadow-lg transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0">
             <div>
                 <div class="h-16 flex items-center px-6 border-b border-gray-100 bg-white">
@@ -360,11 +358,40 @@
                 </div>
             </div>
         </div>
+        
+        <!-- ✅ Profile & Security Modal (เพิ่มใหม่) -->
+        <div v-show="activeModal === 'profile'" style="display: none;" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="closeModal">
+            <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-scale-up">
+                <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                    <div><h3 class="font-bold text-xl text-gray-800"><i class="fa-solid fa-user-shield text-indigo-600 mr-2"></i> Profile & Security</h3><p class="text-xs text-gray-400 mt-1">จัดการข้อมูลส่วนตัวและความปลอดภัย</p></div>
+                    <button @click="closeModal" class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500 transition flex items-center justify-center"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <!-- Email Read-only -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Email</label>
+                        <div class="flex gap-2">
+                            <input type="text" :value="user.email" disabled class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-500 cursor-not-allowed">
+                            <button @click="verifyEmail" class="bg-indigo-50 text-indigo-600 px-3 rounded-xl text-xs font-bold hover:bg-indigo-100 transition whitespace-nowrap"><i class="fa-solid fa-envelope-circle-check mr-1"></i> ยืนยันอีเมล</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Password Update -->
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">New Password</label><input v-model="profileForm.password" type="password" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Confirm New Password</label><input v-model="profileForm.confirmPassword" type="password" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••"></div>
+
+                    <!-- Actions -->
+                    <div class="pt-4 flex gap-2">
+                        <button @click="updateProfile" class="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-lg hover:opacity-90 transition">บันทึกการเปลี่ยนแปลง</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div v-if="isGhostMode" class="fixed bottom-6 right-6 z-[60] animate-bounce"><button @click="exitGhostMode" class="bg-red-600 text-white font-bold py-3 px-6 rounded-full shadow-2xl border-4 border-white">Exit Ghost Mode</button></div>
 
     </div>
     <!-- ✅ บังคับโหลดไฟล์ JS จาก Root -->
-    <script src="/js/app.js"></script> 
+    <script src="/js/app.js?v=3"></script> 
 </body>
 </html>
