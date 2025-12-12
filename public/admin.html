@@ -14,7 +14,6 @@
 <body class="bg-gray-900 min-h-screen text-gray-200">
     <div id="app" class="max-w-7xl mx-auto py-8 px-4">
         
-        <!-- Header -->
         <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-6">
             <div class="flex items-center gap-3">
                 <div class="bg-indigo-600 p-3 rounded-lg"><i class="fa-solid fa-crown text-2xl text-white"></i></div>
@@ -26,7 +25,6 @@
             </div>
         </header>
 
-        <!-- Stats Cards (เหมือนเดิม) -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">Total Users</p><h3 class="text-3xl font-bold text-white">{{ users.length }}</h3></div>
             <div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">Active Bots</p><h3 class="text-3xl font-bold text-green-400">{{ activeBots }}</h3></div>
@@ -34,14 +32,12 @@
             <div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><p class="text-gray-400 text-xs font-bold uppercase mb-1">System Status</p><h3 class="text-3xl font-bold" :class="config.maintenanceMode ? 'text-red-500' : 'text-blue-400'">{{ config.maintenanceMode ? 'Maintenance' : 'Online' }}</h3></div>
         </div>
 
-        <!-- Navigation Tabs -->
         <div class="flex space-x-1 bg-gray-800 p-1 rounded-xl mb-6 w-fit border border-gray-700">
             <button @click="currentTab='users'" :class="currentTab==='users'?'bg-gray-700 text-white shadow':'text-gray-400 hover:text-white'" class="px-6 py-2 rounded-lg text-sm font-bold transition">Users & Plans</button>
             <button @click="currentTab='overview'" :class="currentTab==='overview'?'bg-gray-700 text-white shadow':'text-gray-400 hover:text-white'" class="px-6 py-2 rounded-lg text-sm font-bold transition">System Config</button>
             <button @click="currentTab='logs'" :class="currentTab==='logs'?'bg-gray-700 text-white shadow':'text-gray-400 hover:text-white'" class="px-6 py-2 rounded-lg text-sm font-bold transition">Logs</button>
         </div>
 
-        <!-- Tab: Users & Plans (Redesigned Actions) -->
         <div v-if="currentTab === 'users'" class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-xl">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-gray-300 whitespace-nowrap">
@@ -49,97 +45,57 @@
                         <tr>
                             <th class="p-4">User Info</th>
                             <th class="p-4">Plan</th>
+                            <th class="p-4">Platforms</th>
                             <th class="p-4 text-center">Status</th>
-                            <th class="p-4 text-right">Quick Actions</th>
+                            <th class="p-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-700">
                         <tr v-for="u in users" :key="u._id" class="hover:bg-gray-750 transition">
-                            <td class="p-4">
-                                <div class="font-bold text-white flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-lg border border-indigo-500/30">{{ u.name[0].toUpperCase() }}</div>
-                                    <div>
-                                        <div>{{ u.name }}</div>
-                                        <div class="text-xs text-gray-500">{{ u.email }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="p-4">
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase border" :class="getPlanBadge(u.plan)">{{ u.plan || 'FREE' }}</span>
-                                    <button @click="openPlanModal(u)" class="text-gray-400 hover:text-yellow-400 transition" title="Edit Plan"><i class="fa-solid fa-pen-to-square"></i></button>
-                                </div>
-                                <div class="text-[10px] text-gray-500 mt-1" v-if="u.plan !== 'free' && u.planExpire">Exp: {{ new Date(u.planExpire).toLocaleDateString('th-TH') }}</div>
-                            </td>
-                            <td class="p-4 text-center">
-                                <button @click="toggleBan(u._id)" class="px-3 py-1 rounded-full text-xs font-bold transition border" :class="u.isActive ? 'bg-green-500/10 text-green-400 border-green-500/30 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50' : 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-green-500/20 hover:text-green-400 hover:border-green-500/50'">
-                                    {{ u.isActive ? 'Active' : 'Banned' }}
-                                </button>
-                            </td>
-                            <td class="p-4 text-right">
-                                <div class="flex justify-end gap-2" v-if="u.role !== 'admin'">
-                                    <!-- ✅ ปุ่ม Reset Password (แยกออกมาให้กดง่าย) -->
-                                    <button @click="resetPassword(u._id, u.name)" class="bg-gray-700 hover:bg-yellow-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Reset Password">
-                                        <i class="fa-solid fa-key"></i>
-                                    </button>
-                                    
-                                    <!-- ปุ่ม Login As -->
-                                    <button @click="loginAs(u._id)" class="bg-gray-700 hover:bg-indigo-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Login as User">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </button>
-                                </div>
-                            </td>
+                            <td class="p-4"><div class="font-bold text-white flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-lg border border-indigo-500/30">{{ u.name[0].toUpperCase() }}</div><div><div>{{ u.name }}</div><div class="text-xs text-gray-500">{{ u.email }}</div></div></div></td>
+                            <td class="p-4"><div class="flex items-center gap-2"><span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase border" :class="getPlanBadge(u.plan)">{{ u.plan || 'FREE' }}</span><button @click="openPlanModal(u)" class="text-gray-400 hover:text-yellow-400 transition"><i class="fa-solid fa-pen-to-square"></i></button></div><div class="text-[10px] text-gray-500 mt-1" v-if="u.plan !== 'free' && u.planExpire">Exp: {{ new Date(u.planExpire).toLocaleDateString('th-TH') }}</div></td>
+                            <td class="p-4"><div class="flex gap-2"><i class="fa-brands fa-facebook text-lg" :class="(u.access || []).includes('facebook') ? 'text-blue-500' : 'text-gray-600 opacity-30'"></i><i class="fa-brands fa-tiktok text-lg" :class="(u.access || []).includes('tiktok') ? 'text-white' : 'text-gray-600 opacity-30'"></i></div></td>
+                            <td class="p-4 text-center"><button @click="toggleBan(u._id)" class="px-3 py-1 rounded-full text-xs font-bold transition border" :class="u.isActive ? 'bg-green-500/10 text-green-400 border-green-500/30 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50' : 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-green-500/20 hover:text-green-400 hover:border-green-500/50'">{{ u.isActive ? 'Active' : 'Banned' }}</button></td>
+                            <td class="p-4 text-right"><div class="flex justify-end gap-2" v-if="u.role !== 'admin'"><button @click="resetPassword(u._id, u.name)" class="bg-gray-700 hover:bg-yellow-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Reset Password"><i class="fa-solid fa-key"></i></button><button @click="loginAs(u._id)" class="bg-gray-700 hover:bg-indigo-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Login as User"><i class="fa-solid fa-eye"></i></button></div></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Tabs อื่นๆ คงเดิม -->
         <div v-if="currentTab === 'overview'" class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><h3 class="font-bold text-white mb-4">Maintenance</h3><div class="flex items-center justify-between bg-gray-900/50 p-4 rounded-lg border border-gray-700"><div><p class="text-sm font-bold text-white">ปิดปรับปรุงระบบ</p></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" v-model="config.maintenanceMode" @change="saveConfig" class="sr-only peer"><div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-red-600"></div></label></div></div><div class="bg-gray-800 p-6 rounded-xl border border-gray-700"><h3 class="font-bold text-white mb-4">Announcement</h3><div class="space-y-3"><input v-model="announcement.message" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm" placeholder="Message..."><div class="flex gap-2"><select v-model="announcement.type" class="bg-gray-900 border border-gray-600 rounded-lg p-2 text-white text-sm"><option value="info">Info</option><option value="warning">Warn</option><option value="danger">Danger</option></select><button @click="saveAnnouncement" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold ml-auto">Post</button><button @click="clearAnnouncement" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-bold">Clear</button></div></div></div></div>
         <div v-if="currentTab === 'logs'" class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden"><table class="w-full text-sm text-left text-gray-300"><thead class="bg-gray-900/50 text-gray-400 uppercase text-xs"><tr><th class="p-4">Time</th><th class="p-4">Action</th><th class="p-4">Details</th><th class="p-4 text-right">By</th></tr></thead><tbody class="divide-y divide-gray-700"><tr v-for="log in systemLogs" :key="log._id"><td class="p-4 text-xs text-gray-500">{{ new Date(log.timestamp).toLocaleString('th-TH') }}</td><td class="p-4 font-bold">{{ log.action }}</td><td class="p-4 text-gray-400 text-xs">{{ log.details }}</td><td class="p-4 text-right text-indigo-300">{{ log.actor }}</td></tr></tbody></table></div>
 
-        <!-- ✅ Modal: Edit Plan -->
+        <!-- ✅ Modal: Edit Plan & Access -->
         <div v-if="activeModal === 'editPlan'" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="activeModal = null">
             <div class="bg-gray-800 rounded-2xl w-full max-w-md border border-gray-700 shadow-2xl animate-scale-up">
-                <div class="p-6 border-b border-gray-700 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-crown text-yellow-400 mr-2"></i> Manage Plan</h3>
-                    <button @click="activeModal = null" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-1 uppercase">User</label>
-                        <div class="text-white font-bold text-lg">{{ editingUser.name }}</div>
-                        <div class="text-sm text-gray-500">{{ editingUser.email }}</div>
-                    </div>
-                    
+                <div class="p-6 border-b border-gray-700 flex justify-between items-center"><h3 class="text-lg font-bold text-white"><i class="fa-solid fa-crown text-yellow-400 mr-2"></i> Manage User</h3><button @click="activeModal = null" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button></div>
+                <div class="p-6 space-y-5">
+                    <div><label class="block text-xs font-bold text-gray-400 mb-1 uppercase">User</label><div class="text-white font-bold text-lg">{{ editingUser.name }}</div><div class="text-sm text-gray-500">{{ editingUser.email }}</div></div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Select Plan</label>
-                            <select v-model="planForm.plan" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500 transition">
-                                <option value="free">Free</option>
-                                <option value="basic">Basic</option>
-                                <option value="pro">Pro (Recommended)</option>
-                                <option value="trial">Trial (7 Days)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Duration (Days)</label>
-                            <input type="number" v-model="planForm.days" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm text-center outline-none focus:border-indigo-500 transition" placeholder="30">
+                        <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Select Plan</label><select v-model="planForm.plan" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500 transition"><option value="free">Free</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="trial">Trial</option></select></div>
+                        <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Duration (Days)</label><input type="number" v-model="planForm.days" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm text-center outline-none focus:border-indigo-500 transition" placeholder="30"></div>
+                    </div>
+                    <!-- ✅ Platform Access Checkboxes (กลับมาแล้ว) -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Platform Access</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer bg-gray-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 transition w-full justify-center border border-gray-600">
+                                <input type="checkbox" value="facebook" v-model="planForm.access" class="accent-blue-500 w-4 h-4">
+                                <span class="text-sm text-white"><i class="fa-brands fa-facebook text-blue-400"></i> Facebook</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer bg-gray-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 transition w-full justify-center border border-gray-600">
+                                <input type="checkbox" value="tiktok" v-model="planForm.access" class="accent-indigo-500 w-4 h-4">
+                                <span class="text-sm text-white"><i class="fa-brands fa-tiktok text-white"></i> TikTok</span>
+                            </label>
                         </div>
                     </div>
-
-                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700 text-xs text-gray-400">
-                        <i class="fa-solid fa-info-circle mr-1"></i> Note: This will set the plan to start from <b>NOW</b> for the specified number of days.
-                    </div>
-
-                    <button @click="savePlan" :disabled="loading" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2">
-                        <span v-if="!loading">💾 Save Changes</span>
-                        <span v-else><i class="fa-solid fa-circle-notch fa-spin"></i> Processing...</span>
-                    </button>
+                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700 text-xs text-gray-400"><i class="fa-solid fa-info-circle mr-1"></i> Saving will update Plan, Expiry Date, and Access Rights immediately.</div>
+                    <button @click="savePlan" :disabled="loading" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2"><span v-if="!loading">💾 Save All Changes</span><span v-else><i class="fa-solid fa-circle-notch fa-spin"></i> Processing...</span></button>
                 </div>
             </div>
         </div>
+
     </div>
 
     <script>
@@ -153,12 +109,10 @@
                 const activeModal = ref(null);
                 const loading = ref(false);
                 const editingUser = ref({});
-                const planForm = ref({ plan: 'basic', days: 30 });
-
-                // Function: Safe Redirect (เพิ่มใหม่ เพื่อแก้ปัญหา SyntaxError ในบางกรณี)
-                const safeRedirect = (url) => {
-                    try { window.location.href = url; } catch (e) { console.error('Redirect error:', e); }
-                };
+                
+                // ✅ เพิ่ม access เข้าไปใน form
+                const planForm = ref({ plan: 'basic', days: 30, access: [] });
+                const safeRedirect = (url) => { try { window.location.href = url; } catch (e) { console.error(e); } };
 
                 if (!token) safeRedirect('index.html');
 
@@ -177,47 +131,23 @@
                 const saveAnnouncement = async () => { announcement.value.isActive = true; try { await axios.post('/api/admin/announcement', announcement.value, { headers: { 'Authorization': `Bearer ${token}` } }); alert('Saved!'); } catch(e) { alert(e.message); } };
                 const clearAnnouncement = async () => { announcement.value = { message: '', type: 'info', isActive: false }; saveAnnouncement(); };
                 
-                const resetPassword = async (userId, userName) => { 
-                    const newPass = prompt(`Set NEW password for ${userName}:`); 
-                    if (!newPass) return; 
-                    try { 
-                        await axios.post('/api/admin/reset-password', { userId, newPassword }, { headers: { 'Authorization': `Bearer ${token}` } }); 
-                        alert('✅ Password Reset Successful!'); 
-                    } catch (e) { alert('Error: ' + e.message); } 
-                };
-
+                const resetPassword = async (userId, userName) => { const newPass = prompt(`Set NEW password for ${userName}:`); if (!newPass) return; try { await axios.post('/api/admin/reset-password', { userId, newPassword }, { headers: { 'Authorization': `Bearer ${token}` } }); alert('✅ Reset Successful!'); } catch (e) { alert('Error: ' + e.message); } };
                 const toggleBan = async (userId) => { if(!confirm('Are you sure?')) return; await axios.post('/api/admin/toggle-ban', { userId }, { headers: { 'Authorization': `Bearer ${token}` } }); fetchData(); };
-                
-                const loginAs = async (userId) => { 
-                    if(!confirm('Ghost Login?')) return; 
-                    try { 
-                        const res = await axios.post('/api/admin/login-as', { userId }, { headers: { 'Authorization': `Bearer ${token}` } }); 
-                        localStorage.setItem('quinn_admin_backup', token); 
-                        localStorage.setItem('quinn_token', res.data.token); 
-                        localStorage.setItem('quinn_user', JSON.stringify(res.data.user)); 
-                        safeRedirect('dashboard.html'); 
-                    } catch (e) { alert(e.message); } 
-                };
-
+                const loginAs = async (userId) => { if(!confirm('Ghost Login?')) return; try { const res = await axios.post('/api/admin/login-as', { userId }, { headers: { 'Authorization': `Bearer ${token}` } }); localStorage.setItem('quinn_admin_backup', token); localStorage.setItem('quinn_token', res.data.token); localStorage.setItem('quinn_user', JSON.stringify(res.data.user)); safeRedirect('dashboard.html'); } catch (e) { alert(e.message); } };
                 const logout = () => { localStorage.clear(); safeRedirect('index.html'); };
-                const updateAccess = async (user) => { try { await axios.post('/api/admin/change-access', { userId: user._id, access: user.access }, { headers: { 'Authorization': `Bearer ${token}` } }); } catch(e) { alert(e.message); } };
                 
-                const getPlanBadge = (plan) => {
-                    if (plan === 'pro') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
-                    if (plan === 'basic') return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
-                    if (plan === 'trial') return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
-                    return 'bg-gray-700 text-gray-400 border-gray-600';
-                };
-                
-                const getDaysLeft = (date) => {
-                    if (!date) return 0;
-                    const diff = new Date(date) - new Date();
-                    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-                };
+                const getPlanBadge = (plan) => { if (plan === 'pro') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50'; if (plan === 'basic') return 'bg-blue-500/20 text-blue-400 border-blue-500/50'; if (plan === 'trial') return 'bg-purple-500/20 text-purple-400 border-purple-500/50'; return 'bg-gray-700 text-gray-400 border-gray-600'; };
+                const getDaysLeft = (date) => { if (!date) return 0; const diff = new Date(date) - new Date(); return Math.ceil(diff / (1000 * 60 * 60 * 24)); };
 
                 const openPlanModal = (user) => {
                     editingUser.value = user;
-                    planForm.value = { userId: user._id, plan: user.plan || 'basic', days: 30 };
+                    // ✅ Load ข้อมูลเดิม
+                    planForm.value = { 
+                        userId: user._id, 
+                        plan: user.plan || 'basic', 
+                        days: 30,
+                        access: user.access || [] // Load Access
+                    };
                     activeModal.value = 'editPlan';
                 };
 
@@ -227,7 +157,7 @@
                         const res = await axios.post('/api/admin/users/extend-plan', planForm.value, { headers: { 'Authorization': `Bearer ${token}` } });
                         alert('✅ ' + res.data.message);
                         activeModal.value = null;
-                        fetchData(); // Refresh list
+                        fetchData();
                     } catch (e) { alert('❌ Error: ' + (e.response?.data?.message || e.message)); }
                     finally { loading.value = false; }
                 };
@@ -237,7 +167,7 @@
                 
                 return { 
                     currentTab, users, systemLogs, config, announcement, activeBots, loading, activeModal,
-                    fetchData, fetchLogs, saveConfig, saveAnnouncement, clearAnnouncement, toggleBan, loginAs, logout, resetPassword, updateAccess,
+                    fetchData, fetchLogs, saveConfig, saveAnnouncement, clearAnnouncement, toggleBan, loginAs, logout, resetPassword,
                     getPlanBadge, getDaysLeft, openPlanModal, savePlan, editingUser, planForm
                 };
             }
