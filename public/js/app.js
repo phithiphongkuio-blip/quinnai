@@ -1,10 +1,10 @@
 const { createApp, ref, onMounted, computed } = Vue;
 
-console.log("🚀 App.js Loaded!"); // ✅ Check 1
+console.log("🚀 App.js Loaded!");
 
 const app = createApp({
     setup() {
-        console.log("⚙️ Setup started"); // ✅ Check 2
+        console.log("⚙️ Setup started");
         
         const currentView = ref('overview');
         const user = ref({});
@@ -69,11 +69,23 @@ const app = createApp({
         const exitGhostMode = () => { if (adminBackupToken) { localStorage.setItem('quinn_token', adminBackupToken); localStorage.removeItem('quinn_admin_backup'); window.location.href = 'admin.html'; } };
 
         const loadData = async () => {
-            console.log("🔄 Loading Data..."); // ✅ Check 3
+            console.log("🔄 Loading Data...");
             if (!token) return window.location.href = 'index.html';
             
             try {
-                // Load User
+                // ✅ Check Maintenance Mode FIRST!
+                try { 
+                    const configRes = await axios.get('/api/system/config'); 
+                    // โหลด user จาก localStorage ก่อนเพื่อเช็ค role
+                    const localUser = JSON.parse(localStorage.getItem('quinn_user') || '{}');
+                    
+                    if (configRes.data?.maintenanceMode && localUser.role !== 'admin') {
+                        console.warn("🚧 Maintenance Mode is ON");
+                        return window.location.href = 'maintenance.html'; 
+                    }
+                } catch(e) { console.error("Config Check Failed", e); }
+
+                // Load User (จาก localStorage หรือเรียก API ใหม่ก็ได้ แต่ตอนนี้ใช้ localStorage ไปก่อนตาม flow เดิม)
                 user.value = JSON.parse(localStorage.getItem('quinn_user') || '{}');
                 const accessList = user.value.access || [];
                 if (currentView.value === 'overview' && accessList.length === 1 && accessList.includes('facebook')) currentView.value = 'facebook';
@@ -92,7 +104,7 @@ const app = createApp({
                 settings.value = loadedSettings;
                 if(data.userPlan) userPlan.value = data.userPlan;
 
-                console.log("✅ Settings Loaded"); // ✅ Check 4
+                console.log("✅ Settings Loaded");
                 
                 // Load Announcement & Features
                 try { const annRes = await axios.get('/api/announcement'); announcement.value = annRes.data.data; } catch(e){}
@@ -148,6 +160,16 @@ const app = createApp({
             }
         };
 
+        // Verify Email Function (Trigger from Frontend)
+        const verifyEmail = async () => {
+            try {
+                const res = await axios.post('/api/auth/send-verification', {}, { headers: { 'Authorization': `Bearer ${token}` } });
+                alert('✅ ' + res.data.message);
+            } catch (e) {
+                handleApiError(e);
+            }
+        };
+
         // ✅ ฟังก์ชันทดสอบส่งอีเมล (เพิ่มใหม่)
         const testEmailNotify = async () => {
             if (!confirm('ต้องการส่งอีเมลทดสอบไปที่ ' + user.value.email + ' หรือไม่?')) return;
@@ -163,20 +185,9 @@ const app = createApp({
             }
         };
 
-        // Verify Email Function (Trigger from Frontend)
-        const verifyEmail = async () => {
-            try {
-                const res = await axios.post('/api/auth/send-verification', {}, { headers: { 'Authorization': `Bearer ${token}` } });
-                alert('✅ ' + res.data.message);
-            } catch (e) {
-                handleApiError(e);
-            }
-        };
-
         onMounted(() => loadData());
 
         return {
-            // ... existing variables ...
             currentView, user, settings, adsList, logsList, adAccountsList, facebookPagesList, loading, announcement, isSidebarOpen,
             paginatedAds, totalStats, activeModal, aiForm, aiResult, aiLoading, hunterKeyword, interestResults, hunterLoading,
             openModal, closeModal, checkAdsNow, searchInterests, saveSettings, connectFacebook, disconnectFacebook, logout,
@@ -184,8 +195,7 @@ const app = createApp({
             launcher, isLaunching, savedAudiences, imageInput, handleImageUpload, triggerImageUpload, quickGenerateAi, launchCampaign, getStatusClass, formatNumber,
             spyKeyword, spyLoading, spyResults, spySearched, searchCompetitors,
             audienceForm, audienceLoading, createAudience,
-            userPlan, profileForm, updateProfile, verifyEmail,
-            testEmailNotify // ✅ อย่าลืม return ออกไปใช้งาน
+            userPlan, profileForm, updateProfile, verifyEmail, testEmailNotify
         };
     }
 });
