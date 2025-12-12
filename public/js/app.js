@@ -14,7 +14,6 @@ const app = createApp({
             autoScale: { increasePercent: 20, maxBudget: 5000, whitelistedAds: [], adLimits: {} }
         });
 
-        // ... (ตัวแปรอื่นๆ) ...
         const adsList = ref([]);
         const logsList = ref([]);
         const adAccountsList = ref([]);
@@ -26,9 +25,6 @@ const app = createApp({
         const itemsPerPage = 25;
         const activeModal = ref(null); 
         
-        // Profile Form
-        const profileForm = ref({ password: '', confirmPassword: '' });
-
         const aiForm = ref({ product: '', tone: 'Hard Sell' }); 
         const aiResult = ref(''); 
         const aiLoading = ref(false);
@@ -42,16 +38,7 @@ const app = createApp({
         const audienceForm = ref({ pageId: '', country: 'TH' });
         const audienceLoading = ref(false);
 
-        const launcher = ref({ 
-            campaignName: '', 
-            budget: 1000, 
-            caption: '', 
-            selectedImage: null, 
-            selectedImagePreview: null, 
-            selectedAudience: null, 
-            targeting: [], 
-            pageId: '' 
-        });
+        const launcher = ref({ campaignName: '', budget: 1000, caption: '', selectedImage: null, selectedImagePreview: null, selectedAudience: null, targeting: [], pageId: '' });
         const isLaunching = ref(false);
         const imageInput = ref(null);
         const savedAudiences = ref([{ id: 1, name: 'สายแฟชั่น', size: '2.5M' }, { id: 2, name: 'คนชอบแต่งบ้าน', size: '1.2M' }, { id: 3, name: 'CEO', size: '500k' }]);
@@ -63,7 +50,6 @@ const app = createApp({
         const paginatedAds = computed(() => { const start = (currentPage.value - 1) * itemsPerPage; return adsList.value.slice(start, start + itemsPerPage); });
         const totalStats = computed(() => { const spend = adsList.value.reduce((a, b) => a + (b.spend || 0), 0); return { spend, sales: spend * 3, profit: spend * 1.5, roas: 3.0, fbSpend: spend }; });
 
-        // ✅ แก้ไข openModal ให้รองรับ Profile
         const openModal = (name) => {
             activeModal.value = name;
             if (name === 'profile') {
@@ -72,7 +58,26 @@ const app = createApp({
         };
         const closeModal = () => activeModal.value = null;
         const checkAccess = (platform) => { if (!user.value || user.value.role === 'admin') return true; return (user.value.access || []).includes(platform); };
-        const exitGhostMode = () => { if (adminBackupToken) { localStorage.setItem('quinn_token', adminBackupToken); localStorage.removeItem('quinn_admin_backup'); window.location.href = 'admin.html'; } };
+
+        // ✅ แก้ไข: ฟังก์ชันออกจาก Ghost Mode (อ่านค่าสดจาก Storage + ล้าง User เก่า)
+        const exitGhostMode = () => {
+            // อ่านค่าสดๆ เพื่อความชัวร์ (ไม่ใช้ตัวแปร const ด้านบน)
+            const backupToken = localStorage.getItem('quinn_admin_backup');
+            
+            if (backupToken) {
+                // 1. คืนค่า Token แอดมิน
+                localStorage.setItem('quinn_token', backupToken);
+                // 2. ลบ Backup ทิ้ง
+                localStorage.removeItem('quinn_admin_backup');
+                // 3. สำคัญ: ลบ User Data ของร่างทรงทิ้ง เพื่อให้หน้า Admin โหลดใหม่
+                localStorage.removeItem('quinn_user');
+                // 4. ดีดกลับไปหน้า Admin
+                window.location.href = 'admin.html';
+            } else {
+                alert("ไม่พบ Token ของ Admin (Session อาจหมดอายุ)");
+                window.location.href = 'index.html'; // ถ้าหาไม่เจอ ให้เด้งไปหน้า Login แทน
+            }
+        };
 
         const loadData = async () => {
             if (!token) return window.location.href = 'index.html';
@@ -84,6 +89,7 @@ const app = createApp({
 
                 const res = await axios.get('/api/me/settings', { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = res.data || {};
+                
                 const loadedSettings = { ...data };
                 delete loadedSettings.userPlan;
                 
@@ -102,12 +108,7 @@ const app = createApp({
 
         const checkAdsNow = async () => { loading.value = true; try { const res = await axios.get('/api/check-now', { headers: { 'Authorization': `Bearer ${token}` } }); adsList.value = res.data.data || []; updateChart(adsList.value); loadLogs(); } catch(e) { alert(e.message); } finally { loading.value = false; } };
         const toggleAdScale = async (adId) => { if (!settings.value.autoScale.whitelistedAds) settings.value.autoScale.whitelistedAds = []; const index = settings.value.autoScale.whitelistedAds.indexOf(adId); if (index > -1) { settings.value.autoScale.whitelistedAds.splice(index, 1); } else { settings.value.autoScale.whitelistedAds.push(adId); } try { await axios.post('/api/me/settings', settings.value, { headers: { 'Authorization': `Bearer ${token}` } }); } catch(e) {} };
-        
-        const handleApiError = (e) => {
-            const msg = e.response?.data?.message || e.message;
-            alert(msg.includes('Upgrade') ? '🔒 ' + msg : '❌ Error: ' + msg);
-        };
-
+        const handleApiError = (e) => { const msg = e.response?.data?.message || e.message; alert(msg.includes('Upgrade') ? '🔒 ' + msg : '❌ Error: ' + msg); };
         const saveSettings = async (alertMsg = true) => { try { await axios.post('/api/me/settings', settings.value, { headers: { 'Authorization': `Bearer ${token}` } }); if(alertMsg) alert('Saved!'); } catch(e){ handleApiError(e); } };
         const connectFacebook = async () => { try { const res = await axios.get('/api/connect-facebook', { headers: { 'Authorization': `Bearer ${token}` } }); window.location.href = res.data.url; } catch(e){} };
         const disconnectFacebook = () => { if(confirm('Disconnect?')) { settings.value.fbToken = ''; settings.value.adAccountId = ''; adAccountsList.value = []; saveSettings(false); alert('Disconnected'); } };
@@ -128,7 +129,9 @@ const app = createApp({
         const getStatusClass = (s) => s === 'DANGER' ? 'text-red-500' : (s === 'SCALING' ? 'text-indigo-600' : 'text-green-600');
         const formatNumber = (n) => new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
-        // ✅ Update Profile Logic
+        // Profile Form
+        const profileForm = ref({ password: '', confirmPassword: '' });
+
         const updateProfile = async () => {
             if (profileForm.value.password && profileForm.value.password !== profileForm.value.confirmPassword) {
                 alert('รหัสผ่านไม่ตรงกัน'); return;
@@ -141,12 +144,20 @@ const app = createApp({
             } catch (e) { handleApiError(e); }
         };
 
-        // ✅ Verify Email Logic
         const verifyEmail = async () => {
             try {
                 const res = await axios.post('/api/auth/send-verification', {}, { headers: { 'Authorization': `Bearer ${token}` } });
                 alert('✅ ' + res.data.message);
             } catch (e) { handleApiError(e); }
+        };
+
+        const testEmailNotify = async () => {
+            if (!confirm('ต้องการส่งอีเมลทดสอบไปที่ ' + user.value.email + ' หรือไม่?')) return;
+            loading.value = true;
+            try {
+                const res = await axios.post('/api/me/test-email', {}, { headers: { 'Authorization': `Bearer ${token}` } });
+                alert('✅ ' + res.data.message);
+            } catch (e) { handleApiError(e); } finally { loading.value = false; }
         };
 
         onMounted(() => loadData());
@@ -159,7 +170,7 @@ const app = createApp({
             launcher, isLaunching, savedAudiences, imageInput, handleImageUpload, triggerImageUpload, quickGenerateAi, launchCampaign, getStatusClass, formatNumber,
             spyKeyword, spyLoading, spyResults, spySearched, searchCompetitors,
             audienceForm, audienceLoading, createAudience,
-            userPlan, profileForm, updateProfile, verifyEmail
+            userPlan, profileForm, updateProfile, verifyEmail, testEmailNotify
         };
     }
 });
