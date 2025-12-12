@@ -52,10 +52,18 @@ const app = createApp({
         const adminBackupToken = localStorage.getItem('quinn_admin_backup');
         const isGhostMode = ref(!!adminBackupToken);
 
+        // Profile Update Form
+        const profileForm = ref({ email: '', password: '', confirmPassword: '' });
+
         const paginatedAds = computed(() => { const start = (currentPage.value - 1) * itemsPerPage; return adsList.value.slice(start, start + itemsPerPage); });
         const totalStats = computed(() => { const spend = adsList.value.reduce((a, b) => a + (b.spend || 0), 0); return { spend, sales: spend * 3, profit: spend * 1.5, roas: 3.0, fbSpend: spend }; });
 
-        const openModal = (name) => activeModal.value = name;
+        const openModal = (name) => {
+            activeModal.value = name;
+            if (name === 'profile') {
+                profileForm.value = { email: user.value.email, password: '', confirmPassword: '' };
+            }
+        };
         const closeModal = () => activeModal.value = null;
         const checkAccess = (platform) => { if (!user.value || user.value.role === 'admin') return true; return (user.value.access || []).includes(platform); };
         const exitGhostMode = () => { if (adminBackupToken) { localStorage.setItem('quinn_token', adminBackupToken); localStorage.removeItem('quinn_admin_backup'); window.location.href = 'admin.html'; } };
@@ -124,9 +132,51 @@ const app = createApp({
         const getStatusClass = (s) => s === 'DANGER' ? 'text-red-500' : (s === 'SCALING' ? 'text-indigo-600' : 'text-green-600');
         const formatNumber = (n) => new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
+        // Update Profile Function
+        const updateProfile = async () => {
+            if (profileForm.value.password && profileForm.value.password !== profileForm.value.confirmPassword) {
+                alert('รหัสผ่านไม่ตรงกัน');
+                return;
+            }
+            try {
+                const res = await axios.post('/api/me/update-profile', profileForm.value, { headers: { 'Authorization': `Bearer ${token}` } });
+                alert('✅ ' + res.data.message);
+                if (res.data.requireLogin) logout();
+                closeModal();
+            } catch (e) {
+                handleApiError(e);
+            }
+        };
+
+        // ✅ ฟังก์ชันทดสอบส่งอีเมล (เพิ่มใหม่)
+        const testEmailNotify = async () => {
+            if (!confirm('ต้องการส่งอีเมลทดสอบไปที่ ' + user.value.email + ' หรือไม่?')) return;
+            
+            loading.value = true;
+            try {
+                const res = await axios.post('/api/me/test-email', {}, { headers: { 'Authorization': `Bearer ${token}` } });
+                alert('✅ ' + res.data.message);
+            } catch (e) {
+                handleApiError(e);
+            } finally {
+                loading.value = false;
+            }
+        };
+
+        // Verify Email Function (Trigger from Frontend)
+        const verifyEmail = async () => {
+            try {
+                const res = await axios.post('/api/auth/send-verification', {}, { headers: { 'Authorization': `Bearer ${token}` } });
+                alert('✅ ' + res.data.message);
+            } catch (e) {
+                handleApiError(e);
+            }
+        };
+
         onMounted(() => loadData());
 
         return {
+            // ... existing variables ...
             currentView, user, settings, adsList, logsList, adAccountsList, facebookPagesList, loading, announcement, isSidebarOpen,
             paginatedAds, totalStats, activeModal, aiForm, aiResult, aiLoading, hunterKeyword, interestResults, hunterLoading,
             openModal, closeModal, checkAdsNow, searchInterests, saveSettings, connectFacebook, disconnectFacebook, logout,
@@ -134,7 +184,8 @@ const app = createApp({
             launcher, isLaunching, savedAudiences, imageInput, handleImageUpload, triggerImageUpload, quickGenerateAi, launchCampaign, getStatusClass, formatNumber,
             spyKeyword, spyLoading, spyResults, spySearched, searchCompetitors,
             audienceForm, audienceLoading, createAudience,
-            userPlan
+            userPlan, profileForm, updateProfile, verifyEmail,
+            testEmailNotify // ✅ อย่าลืม return ออกไปใช้งาน
         };
     }
 });
