@@ -56,7 +56,16 @@
                             <td class="p-4"><div class="flex items-center gap-2"><span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase border" :class="getPlanBadge(u.plan)">{{ u.plan || 'FREE' }}</span><button @click="openPlanModal(u)" class="text-gray-400 hover:text-yellow-400 transition"><i class="fa-solid fa-pen-to-square"></i></button></div><div class="text-[10px] text-gray-500 mt-1" v-if="u.plan !== 'free' && u.planExpire">Exp: {{ new Date(u.planExpire).toLocaleDateString('th-TH') }}</div></td>
                             <td class="p-4"><div class="flex gap-2"><i class="fa-brands fa-facebook text-lg" :class="(u.access || []).includes('facebook') ? 'text-blue-500' : 'text-gray-600 opacity-30'"></i><i class="fa-brands fa-tiktok text-lg" :class="(u.access || []).includes('tiktok') ? 'text-white' : 'text-gray-600 opacity-30'"></i></div></td>
                             <td class="p-4 text-center"><button @click="toggleBan(u._id)" class="px-3 py-1 rounded-full text-xs font-bold transition border" :class="u.isActive ? 'bg-green-500/10 text-green-400 border-green-500/30 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50' : 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-green-500/20 hover:text-green-400 hover:border-green-500/50'">{{ u.isActive ? 'Active' : 'Banned' }}</button></td>
-                            <td class="p-4 text-right"><div class="flex justify-end gap-2" v-if="u.role !== 'admin'"><button @click="resetPassword(u._id, u.name)" class="bg-gray-700 hover:bg-yellow-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Reset Password"><i class="fa-solid fa-key"></i></button><button @click="loginAs(u._id)" class="bg-gray-700 hover:bg-indigo-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Login as User"><i class="fa-solid fa-eye"></i></button></div></td>
+                            <td class="p-4 text-right">
+                                <div class="flex justify-end gap-2" v-if="u.role !== 'admin'">
+                                    <!-- ✅ ปุ่ม Reset Password -->
+                                    <button @click="resetPassword(u._id, u.name)" class="bg-gray-700 hover:bg-yellow-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Reset Password"><i class="fa-solid fa-key"></i></button>
+                                    <!-- ✅ ปุ่ม Login As -->
+                                    <button @click="loginAs(u._id)" class="bg-gray-700 hover:bg-indigo-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Login as User"><i class="fa-solid fa-eye"></i></button>
+                                    <!-- ✅ ปุ่ม Delete User -->
+                                    <button @click="deleteUser(u._id)" class="bg-gray-700 hover:bg-red-600 text-white w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Delete User Permanently"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -76,18 +85,11 @@
                         <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Select Plan</label><select v-model="planForm.plan" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500 transition"><option value="free">Free</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="trial">Trial</option></select></div>
                         <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Duration (Days)</label><input type="number" v-model="planForm.days" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm text-center outline-none focus:border-indigo-500 transition" placeholder="30"></div>
                     </div>
-                    <!-- ✅ Platform Access Checkboxes (กลับมาแล้ว) -->
                     <div>
                         <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Platform Access</label>
                         <div class="flex gap-4">
-                            <label class="flex items-center gap-2 cursor-pointer bg-gray-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 transition w-full justify-center border border-gray-600">
-                                <input type="checkbox" value="facebook" v-model="planForm.access" class="accent-blue-500 w-4 h-4">
-                                <span class="text-sm text-white"><i class="fa-brands fa-facebook text-blue-400"></i> Facebook</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer bg-gray-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 transition w-full justify-center border border-gray-600">
-                                <input type="checkbox" value="tiktok" v-model="planForm.access" class="accent-indigo-500 w-4 h-4">
-                                <span class="text-sm text-white"><i class="fa-brands fa-tiktok text-white"></i> TikTok</span>
-                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer bg-gray-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 transition w-full justify-center border border-gray-600"><input type="checkbox" value="facebook" v-model="planForm.access" class="accent-blue-500 w-4 h-4"><span class="text-sm text-white"><i class="fa-brands fa-facebook text-blue-400"></i> Facebook</span></label>
+                            <label class="flex items-center gap-2 cursor-pointer bg-gray-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 transition w-full justify-center border border-gray-600"><input type="checkbox" value="tiktok" v-model="planForm.access" class="accent-indigo-500 w-4 h-4"><span class="text-sm text-white"><i class="fa-brands fa-tiktok text-white"></i> TikTok</span></label>
                         </div>
                     </div>
                     <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700 text-xs text-gray-400"><i class="fa-solid fa-info-circle mr-1"></i> Saving will update Plan, Expiry Date, and Access Rights immediately.</div>
@@ -109,8 +111,6 @@
                 const activeModal = ref(null);
                 const loading = ref(false);
                 const editingUser = ref({});
-                
-                // ✅ เพิ่ม access เข้าไปใน form
                 const planForm = ref({ plan: 'basic', days: 30, access: [] });
                 const safeRedirect = (url) => { try { window.location.href = url; } catch (e) { console.error(e); } };
 
@@ -136,38 +136,27 @@
                 const loginAs = async (userId) => { if(!confirm('Ghost Login?')) return; try { const res = await axios.post('/api/admin/login-as', { userId }, { headers: { 'Authorization': `Bearer ${token}` } }); localStorage.setItem('quinn_admin_backup', token); localStorage.setItem('quinn_token', res.data.token); localStorage.setItem('quinn_user', JSON.stringify(res.data.user)); safeRedirect('dashboard.html'); } catch (e) { alert(e.message); } };
                 const logout = () => { localStorage.clear(); safeRedirect('index.html'); };
                 
+                // ✅ Delete User Function
+                const deleteUser = async (userId) => {
+                    if (!confirm('⚠️ คำเตือน: คุณต้องการลบผู้ใช้นี้ถาวรใช่ไหม?\nข้อมูลทั้งหมดจะหายไปและกู้คืนไม่ได้!')) return;
+                    if (!confirm('ยืนยันการลบครั้งสุดท้าย?')) return;
+                    try {
+                        const res = await axios.post('/api/admin/delete-user', { userId }, { headers: { 'Authorization': `Bearer ${token}` } });
+                        alert('✅ ' + res.data.message);
+                        fetchData();
+                    } catch (e) { alert('Error: ' + (e.response?.data?.message || e.message)); }
+                };
+
                 const getPlanBadge = (plan) => { if (plan === 'pro') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50'; if (plan === 'basic') return 'bg-blue-500/20 text-blue-400 border-blue-500/50'; if (plan === 'trial') return 'bg-purple-500/20 text-purple-400 border-purple-500/50'; return 'bg-gray-700 text-gray-400 border-gray-600'; };
                 const getDaysLeft = (date) => { if (!date) return 0; const diff = new Date(date) - new Date(); return Math.ceil(diff / (1000 * 60 * 60 * 24)); };
-
-                const openPlanModal = (user) => {
-                    editingUser.value = user;
-                    // ✅ Load ข้อมูลเดิม
-                    planForm.value = { 
-                        userId: user._id, 
-                        plan: user.plan || 'basic', 
-                        days: 30,
-                        access: user.access || [] // Load Access
-                    };
-                    activeModal.value = 'editPlan';
-                };
-
-                const savePlan = async () => {
-                    loading.value = true;
-                    try {
-                        const res = await axios.post('/api/admin/users/extend-plan', planForm.value, { headers: { 'Authorization': `Bearer ${token}` } });
-                        alert('✅ ' + res.data.message);
-                        activeModal.value = null;
-                        fetchData();
-                    } catch (e) { alert('❌ Error: ' + (e.response?.data?.message || e.message)); }
-                    finally { loading.value = false; }
-                };
-
+                const openPlanModal = (user) => { editingUser.value = user; planForm.value = { userId: user._id, plan: user.plan || 'basic', days: 30, access: user.access || [] }; activeModal.value = 'editPlan'; };
+                const savePlan = async () => { loading.value = true; try { const res = await axios.post('/api/admin/users/extend-plan', planForm.value, { headers: { 'Authorization': `Bearer ${token}` } }); alert('✅ ' + res.data.message); activeModal.value = null; fetchData(); } catch (e) { alert('❌ Error: ' + (e.response?.data?.message || e.message)); } finally { loading.value = false; } };
                 const activeBots = computed(() => users.value.filter(u => u.settings?.isBotActive).length);
                 onMounted(() => fetchData());
                 
                 return { 
                     currentTab, users, systemLogs, config, announcement, activeBots, loading, activeModal,
-                    fetchData, fetchLogs, saveConfig, saveAnnouncement, clearAnnouncement, toggleBan, loginAs, logout, resetPassword,
+                    fetchData, fetchLogs, saveConfig, saveAnnouncement, clearAnnouncement, toggleBan, loginAs, logout, resetPassword, deleteUser,
                     getPlanBadge, getDaysLeft, openPlanModal, savePlan, editingUser, planForm
                 };
             }
