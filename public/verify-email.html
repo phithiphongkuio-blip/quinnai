@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifying Email...</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md w-full">
+        <div id="status-icon" class="text-6xl mb-4">⏳</div>
+        <h1 id="status-text" class="text-2xl font-bold text-gray-800 mb-2">กำลังยืนยันอีเมล...</h1>
+        <p id="status-desc" class="text-gray-500 text-sm">กรุณารอสักครู่ ระบบกำลังตรวจสอบความถูกต้อง</p>
+        <a href="/" class="hidden mt-6 inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold" id="home-btn">กลับหน้าหลัก</a>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+
+        if (token) {
+            axios.post('/api/auth/verify', { token })
+                .then(() => {
+                    document.getElementById('status-icon').innerText = '✅';
+                    document.getElementById('status-text').innerText = 'ยืนยันสำเร็จ!';
+                    document.getElementById('status-desc').innerText = 'อีเมลของคุณได้รับการยืนยันแล้ว';
+                    document.getElementById('status-text').className = 'text-2xl font-bold text-green-600 mb-2';
+                })
+                .catch(err => {
+                    document.getElementById('status-icon').innerText = '❌';
+                    document.getElementById('status-text').innerText = 'เกิดข้อผิดพลาด';
+                    document.getElementById('status-desc').innerText = err.response?.data?.message || 'Token ไม่ถูกต้องหรือหมดอายุ';
+                    document.getElementById('status-text').className = 'text-2xl font-bold text-red-600 mb-2';
+                })
+                .finally(() => {
+                    document.getElementById('home-btn').classList.remove('hidden');
+                });
+        } else {
+            document.getElementById('status-icon').innerText = '❓';
+            document.getElementById('status-text').innerText = 'ไม่พบ Token';
+        }
+    </script>
+</body>
+</html>
