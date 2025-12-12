@@ -3,43 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verifying Email...</title>
+    <title>ยืนยันอีเมล - Quinn AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style> body { font-family: 'Prompt', sans-serif; } </style>
 </head>
-<body class="bg-gray-100 h-screen flex items-center justify-center">
-    <div class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md w-full">
-        <div id="status-icon" class="text-6xl mb-4">⏳</div>
-        <h1 id="status-text" class="text-2xl font-bold text-gray-800 mb-2">กำลังยืนยันอีเมล...</h1>
-        <p id="status-desc" class="text-gray-500 text-sm">กรุณารอสักครู่ ระบบกำลังตรวจสอบความถูกต้อง</p>
-        <a href="/" class="hidden mt-6 inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold" id="home-btn">กลับหน้าหลัก</a>
+<body class="bg-gray-50 h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 text-center relative overflow-hidden">
+        
+        <!-- Decoration -->
+        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+
+        <!-- Icon -->
+        <div id="status-icon-container" class="mb-6">
+            <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto animate-pulse">
+                <i id="status-icon" class="fa-solid fa-envelope-open-text text-4xl text-indigo-600"></i>
+            </div>
+        </div>
+
+        <!-- Text -->
+        <h1 id="status-title" class="text-2xl font-bold text-gray-800 mb-2">กำลังยืนยันอีเมล...</h1>
+        <p id="status-desc" class="text-gray-500 text-sm mb-8">กรุณารอสักครู่ ระบบกำลังตรวจสอบความถูกต้องของลิงก์</p>
+
+        <!-- Action Button (Hidden by default) -->
+        <a id="home-btn" href="/" class="hidden w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition transform active:scale-95">
+            กลับสู่หน้าหลัก
+        </a>
+
     </div>
 
-    <script>
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
+    <p class="text-xs text-gray-400 mt-8">&copy; 2025 Quinn AI Security System</p>
 
-        if (token) {
-            axios.post('/api/auth/verify', { token })
-                .then(() => {
-                    document.getElementById('status-icon').innerText = '✅';
-                    document.getElementById('status-text').innerText = 'ยืนยันสำเร็จ!';
-                    document.getElementById('status-desc').innerText = 'อีเมลของคุณได้รับการยืนยันแล้ว';
-                    document.getElementById('status-text').className = 'text-2xl font-bold text-green-600 mb-2';
-                })
-                .catch(err => {
-                    document.getElementById('status-icon').innerText = '❌';
-                    document.getElementById('status-text').innerText = 'เกิดข้อผิดพลาด';
-                    document.getElementById('status-desc').innerText = err.response?.data?.message || 'Token ไม่ถูกต้องหรือหมดอายุ';
-                    document.getElementById('status-text').className = 'text-2xl font-bold text-red-600 mb-2';
-                })
-                .finally(() => {
-                    document.getElementById('home-btn').classList.remove('hidden');
-                });
-        } else {
-            document.getElementById('status-icon').innerText = '❓';
-            document.getElementById('status-text').innerText = 'ไม่พบ Token';
-        }
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            
+            const iconContainer = document.querySelector('#status-icon-container div');
+            const icon = document.getElementById('status-icon');
+            const title = document.getElementById('status-title');
+            const desc = document.getElementById('status-desc');
+            const btn = document.getElementById('home-btn');
+
+            if (!token) {
+                showError('ไม่พบรหัสยืนยัน (Token not found)', 'ลิงก์นี้อาจไม่สมบูรณ์ กรุณาตรวจสอบอีเมลอีกครั้ง');
+                return;
+            }
+
+            try {
+                // เรียก API หลังบ้านเพื่อยืนยัน
+                // หมายเหตุ: ใช้ URL เต็มเพื่อให้แน่ใจว่ายิงถูก Server (ปรับแก้ได้ตาม Env จริง)
+                const res = await axios.post('/api/auth/verify', { token });
+                
+                // ✅ Success State
+                iconContainer.className = 'w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto';
+                icon.className = 'fa-solid fa-circle-check text-4xl text-green-500';
+                title.innerText = 'ยืนยันอีเมลสำเร็จ!';
+                title.className = 'text-2xl font-bold text-green-600 mb-2';
+                desc.innerText = 'บัญชีของคุณได้รับการยืนยันเรียบร้อยแล้ว สามารถใช้งานได้ทันที';
+                btn.classList.remove('hidden');
+
+            } catch (err) {
+                // ❌ Error State
+                const msg = err.response?.data?.message || 'ลิงก์ยืนยันไม่ถูกต้องหรือหมดอายุแล้ว';
+                showError('ยืนยันไม่สำเร็จ', msg);
+            }
+
+            function showError(head, sub) {
+                iconContainer.className = 'w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto';
+                icon.className = 'fa-solid fa-circle-xmark text-4xl text-red-500';
+                title.innerText = head;
+                title.className = 'text-2xl font-bold text-red-600 mb-2';
+                desc.innerText = sub;
+                btn.classList.remove('hidden');
+                btn.innerText = 'กลับไปลองใหม่';
+            }
+        });
     </script>
 </body>
 </html>
