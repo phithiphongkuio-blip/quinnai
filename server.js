@@ -1,28 +1,28 @@
 require('dotenv').config();
-const path = require('path');
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const fs = require('fs');
-const multer = require('multer');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const nodemailer = require('nodemailer');
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const cron = require('node-cron');
-const FormData = require('form-data');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ✅ Middleware
-app.use(cors());
-app.use(express.json());
-// ระบุที่อยู่ไฟล์หน้าบ้าน (Frontend)
-app.use(express.static(path.join(__dirname, 'public')));
-
-const upload = multer({ dest: 'uploads/' });
+// ✅ API: Test Email Notification
+app.post('/api/me/test-email', authMiddleware, async (req, res) => {
+    try {
+        const userEmail = req.user.email;
+        const subject = "🔔 ทดสอบระบบแจ้งเตือนจาก Quinn AI";
+        const html = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #4F46E5;">Quinn AI Notification Test</h2>
+                <p>สวัสดีคุณ <strong>${req.user.name}</strong>,</p>
+                <p>นี่คืออีเมลทดสอบเพื่อยืนยันว่าระบบแจ้งเตือนของคุณทำงานได้ถูกต้อง ✅</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #666; font-size: 12px;">หากคุณได้รับอีเมลนี้ แสดงว่าการตั้งค่า SMTP สมบูรณ์แล้ว</p>
+            </div>
+        `;
+        
+        await sendEmailNotify(userEmail, subject, html);
+        await sysLog('Test Email Sent', `Sent to ${userEmail}`, req.user.name);
+        
+        res.json({ status: 'Success', message: `ส่งอีเมลทดสอบไปที่ ${userEmail} แล้ว` });
+    } catch (e) {
+        console.error("Email Error:", e);
+        res.status(500).json({ message: 'ส่งอีเมลไม่สำเร็จ: ' + e.message });
+    }
+});
 
 // ✅ Database Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -55,8 +55,10 @@ const Announcement = mongoose.model('Announcement', announcementSchema);
 const userSchema = new mongoose.Schema({
     name: String, email: { type: String, required: true, unique: true }, password: { type: String, required: true },
     role: { type: String, default: 'user' },
+    // Membership
     plan: { type: String, default: 'trial', enum: ['free', 'trial', 'basic', 'pro'] },
-    planExpire: { type: Date, default: () => new Date(+new Date() + 7*24*60*60*1000) },
+    planExpire: { type: Date, default: () => new Date(+new Date() + 7*24*60*60*1000) }, // Trial 7 days
+    
     access: { type: [String], default: ['facebook'] },
     isActive: { type: Boolean, default: true }, created_at: { type: Date, default: Date.now },
     settings: {
@@ -75,15 +77,15 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// ✅ Middlewares (Authentication & Plan Checking)
+// ✅ Middlewares (Auth & Plan Check)
 const adminMiddleware = async (req, res, next) => { const token = req.header('Authorization'); if (!token) return res.status(401).json({ message: 'No Token' }); try { const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET); const user = await User.findById(decoded.id); if (!user || user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' }); req.user = user; next(); } catch (e) { res.status(401).json({ message: 'Invalid Token' }); } };
 const authMiddleware = async (req, res, next) => { const token = req.header('Authorization'); if (!token) return res.status(401).json({ message: 'No Token' }); try { const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET); const user = await User.findById(decoded.id); if (!user.isActive) return res.status(403).json({ message: 'Banned' }); req.user = user; next(); } catch (e) { res.status(401).json({ message: 'Invalid Token' }); } };
 
-// ฟังก์ชันที่หายไป: ตรวจสอบสิทธิ์การใช้งาน (Plan)
+// ฟังก์ชันตรวจสอบสิทธิ์ (Plan)
 const checkPlan = (requiredLevel) => {
     return async (req, res, next) => {
         const user = req.user;
-        if (user.role === 'admin') return next(); // Admin ผ่านตลอด
+        if (user.role === 'admin') return next();
 
         // เช็ควันหมดอายุ
         if (user.plan !== 'free' && new Date() > new Date(user.planExpire)) {
@@ -106,7 +108,7 @@ const checkPlan = (requiredLevel) => {
     };
 };
 
-// ================= API ROUTES (Cleaned Up) =================
+// ================= API ROUTES =================
 
 // 1. System & Admin
 app.get('/api/system/config', async (req, res) => res.json(await SystemConfig.findOne()));
@@ -119,6 +121,7 @@ app.post('/api/admin/toggle-ban', adminMiddleware, async (req, res) => { try { c
 app.post('/api/admin/login-as', adminMiddleware, async (req, res) => { try { const user = await User.findById(req.body.userId); const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' }); await sysLog('Ghost Login', user.email, req.user.name, 'WARN'); res.json({ status: 'Success', token, user: { name: user.name, role: user.role, access: user.access } }); } catch (e) { res.status(500).json({ message: e.message }); } });
 app.post('/api/admin/reset-password', adminMiddleware, async (req, res) => { try { const user = await User.findById(req.body.userId); user.password = await bcrypt.hash(req.body.newPassword, 10); await user.save(); res.json({ status: 'Success' }); } catch (e) { res.status(500).json({ message: e.message }); } });
 app.post('/api/admin/change-access', adminMiddleware, async (req, res) => { try { await User.findByIdAndUpdate(req.body.userId, { access: req.body.access }); res.json({ status: 'Success' }); } catch (e) { res.status(500).json({ message: e.message }); } });
+// Admin เติมวัน
 app.post('/api/admin/users/extend-plan', adminMiddleware, async (req, res) => { try { const { userId, plan, days } = req.body; const user = await User.findById(userId); user.plan = plan; user.planExpire = new Date(new Date().getTime() + (days * 24 * 60 * 60 * 1000)); await user.save(); res.json({ status: 'Success', message: `Updated ${user.name} to ${plan} for ${days} days` }); } catch (e) { res.status(500).json({ message: e.message }); } });
 
 // 2. Auth & User
@@ -129,7 +132,12 @@ app.post('/api/me/settings', authMiddleware, async (req, res) => { try { if(req.
 app.get('/api/me/logs', authMiddleware, async (req, res) => res.json(req.user.logs));
 
 // 3. Facebook Integration
-app.get('/api/connect-facebook', authMiddleware, (req, res) => { const scopes = 'ads_management,ads_read,public_profile,business_management,pages_show_list,pages_read_engagement'; const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${process.env.FB_APP_ID}&redirect_uri=${process.env.FB_CALLBACK_URL}&state=${req.header('Authorization').replace('Bearer ', '')}&scope=${scopes}`; res.json({ url }); });
+// เพิ่ม scope: pages_show_list, pages_read_engagement สำหรับดึงเพจ Business
+app.get('/api/connect-facebook', authMiddleware, (req, res) => { 
+    const scopes = 'ads_management,ads_read,public_profile,business_management,pages_show_list,pages_read_engagement'; 
+    const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${process.env.FB_APP_ID}&redirect_uri=${process.env.FB_CALLBACK_URL}&state=${req.header('Authorization').replace('Bearer ', '')}&scope=${scopes}`; 
+    res.json({ url }); 
+});
 app.get('/api/facebook/callback', async (req, res) => { try { const { code, state } = req.query; const tokenRes = await axios.get('https://graph.facebook.com/v18.0/oauth/access_token', { params: { client_id: process.env.FB_APP_ID, client_secret: process.env.FB_APP_SECRET, redirect_uri: process.env.FB_CALLBACK_URL, code } }); const user = await User.findById(jwt.verify(state, process.env.JWT_SECRET).id); user.settings.fbToken = tokenRes.data.access_token; await user.save(); res.redirect('/dashboard.html?status=success'); } catch (e) { res.send('Error: ' + e.message); } });
 app.get('/api/me/adaccounts', authMiddleware, async (req, res) => { try { const fbRes = await axios.get(`https://graph.facebook.com/v18.0/me/adaccounts`, { params: { access_token: req.user.settings.fbToken, fields: 'name,account_id,currency,account_status,business_name', limit: 100 } }); const accounts = fbRes.data.data.map(a => ({ id: `act_${a.account_id}`, name: a.name + (a.business_name ? ` (${a.business_name})` : ''), currency: a.currency, status: a.account_status === 1 ? 'Active' : 'Inactive' })); res.json({ status: 'Success', accounts }); } catch (e) { res.status(500).json({ message: 'FB Load Error' }); } });
 app.get('/api/me/pages', authMiddleware, async (req, res) => { try { const token = req.user.settings.fbToken; if (!token) return res.json({ status: 'Success', data: [] }); const fbRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, { params: { access_token: token, fields: 'name,id,category,tasks', limit: 100 } }); const pages = fbRes.data.data.map(p => ({ id: p.id, name: p.name, category: p.category })); res.json({ status: 'Success', pages }); } catch (e) { res.status(500).json({ message: 'Error pages' }); } });
